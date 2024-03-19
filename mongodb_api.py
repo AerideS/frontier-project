@@ -27,24 +27,45 @@ class DroneData:
         self.add_device_data(device_type, longitude, latitude, altitude)  # add_device 함수를 호출하여 장치 데이터를 업데이트
 
 class TerrainData:
+    '''
+    지형의 데이터 저장 
+    위도, 경도, 지형의 고도, 신호 도달 가능 고도
+    '''
     def __init__(self) -> None:
         client = MongoClient('mongodb://localhost:27017/')  # MongoDB 클라이언트를 생성하고 로컬 호스트의 기본 포트로 연결
         self.db = client['terrain_data']  # 'drone_data'라는 데이터베이스를 선택
+        self.collection_name = "terrain_data"
+        self.collection = self.db[self.collection_name]  # 선택한 데이터베이스에서 해당 이름의 컬렉션을 선택..
 
-    def _checkExist(longitude, latitude):
-        pass
-
-    def addHeight(longitude, latitude, altitude):
-        pass
-
-    def getHeight(longitude, latitude):
-        pass
-
-    def addLos(longitude, latitude, losElev):
-        pass
+    def _checkExist(self, longitude, latitude):        
+        existing_data = self.collection.find_one({'longitude': longitude, 'latitude': latitude})  # 주어진 경도와 위도로 이미 존재하는 데이터를 조회
+        return existing_data
     
-    def getLos(longitude, latitude):
-        pass
+    def addHeight(self, longitude, latitude, altitude):
+        existing_data = self._checkExist(longitude, latitude)
+        if existing_data:
+            self.collection.update_one({'_id': existing_data['_id']}, {'$set': {'elevation': altitude}})  # 해당 데이터의 고도를 업데이트
+        else:  # 데이터가 존재하지 않을 경우
+            self.collection.insert_one({'longitude': longitude, 'latitude': latitude, 'elevation': altitude, 'losAlt':-1})  # 새로운 데이터를 추가
+
+    def getHeight(self, longitude, latitude):
+            existing_data = self._checkExist(longitude, latitude)
+            if existing_data:
+                return existing_data['elevation']
+            return None
+
+    def addLos(self, longitude, latitude, losElev):
+        existing_data = self._checkExist(longitude, latitude)
+        if existing_data:
+            self.collection.update_one({'_id': existing_data['_id']}, {'$set': {'losAlt': losElev}})  # 해당 데이터의 고도를 업데이트
+        else:  # 데이터가 존재하지 않을 경우
+            self.collection.insert_one({'longitude': longitude, 'latitude': latitude, 'elevation': -1, 'losAlt': losElev})  # 새로운 데이터를 추가
+    
+    def getLos(self, longitude, latitude):
+            existing_data = self._checkExist(longitude, latitude)
+            if existing_data:
+                return existing_data['losAlt']
+            return None
 
     if __name__ == '__main__':  # 스크립트가 단독으로 실행될 때만 아래 코드를 실행
         #app.run(debug=False)  # Flask 애플리케이션을 실행. 디버그 모드는 비활성화됩니다
