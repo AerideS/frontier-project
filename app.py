@@ -9,6 +9,6 @@ def index():
   return render_template('index.html',user="반원",data={'level':60,'point':360,'exp':45000})
 
 if __name__=="__main__":
-  app.run(debug=True)
+  app.run(host="0.0.0.0", port="5000", debug=True)
   # host 등을 직접 지정하고 싶다면
   # app.run(host="127.0.0.1", port="5000", debug=True)
