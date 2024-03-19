@@ -26,6 +26,12 @@ def get_device(device_type, longitude, latitude):
 def update_device(device_type, longitude, latitude, altitude):
     add_device(device_type, longitude, latitude, altitude)  # add_device 함수를 호출하여 장치 데이터를 업데이트
 
+def addHeight():
+    pass
+
+def getHeight():
+    pass
+
 if __name__ == '__main__':  # 스크립트가 단독으로 실행될 때만 아래 코드를 실행
     #app.run(debug=False)  # Flask 애플리케이션을 실행. 디버그 모드는 비활성화됩니다
 
@@ -33,3 +39,5 @@ if __name__ == '__main__':  # 스크립트가 단독으로 실행될 때만 아�
     add_device('drone', 40.7128, -74.0060, 150)  # 예시파일 New York Citys의 고도 150m로 설정
     add_device('drone', 34.0522, -118.2437, 150)  # 예시파일 Los Angeles의 고도 150m로 설정
     # 이상적인 예시 첫번쨰 New York City의 고도는 100m인데 두번째 코드로 인해 고도는 150m로 업로드 되서 첫번째 예시는 사라진다. 세번쨰 예시는 위도 경도가 나오니 출력
+
+
