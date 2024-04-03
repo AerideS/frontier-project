@@ -1,5 +1,4 @@
 import pika
-import time
 
 #서버 연결
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
@@ -21,6 +20,34 @@ for binding_key in binding_keys:
     channel.queue_bind(exchange='test_exchange', queue=queue_name, routing_key=binding_key)
 
 print(' [*] Waiting for logs. To exit press CTRL+C')
+
+#ready
+def ready():
+    print('이륙 전 아이들 상태까지 준비')
+    #mavSDK_api 준비 관련 함수
+
+#takeoff
+def takeoff(altitude):
+    print('이륙')
+    #mavSDK_api 이륙 관련 함수
+
+#move
+def move(lat, lon, abs_alt):
+    print('이동')
+    #mavSDK_api 이동 관련 함수
+
+def adjust_alt(target_alt):
+    print('고도 조정(이동을 동반함)')
+    #mavSDK_api 현재 위치 받아오는 함수
+    cur_lat = '현재 위도가 들어가야함'
+    cur_lon = '현재 경도가 들어가야함'
+    move(cur_lat, cur_lon, target_alt)
+
+def drop():
+    print('투하')
+    #풀리 작동 및 열선 가열로 투하
+
+#여기서부터 시작하기(수정중)
 
 # 메시지 처리 함수
 def callback(ch, method, properties, body):
