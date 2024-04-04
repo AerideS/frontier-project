@@ -1,4 +1,4 @@
-import pika
+import pika, json
 
 #서버 연결
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
@@ -7,13 +7,16 @@ channel = connection.channel()
 #exchange 선언
 channel.exchange_declare(exchange='test_exchange', exchange_type='topic')
 
-#임시 큐 생성
-result = channel.queue_declare('', exclusive=True)
+#큐 생성
+result=channel.queue_declare(queue='test_queue', durable=True) #durable=True : 큐가 영속적인 것의 의미, 해당 큐를 디스크에 저장하고, 서버가 재시작되어도 큐와 큐에 포함된 메시지가 유지
+
+# #임시 큐 생성
+# result = channel.queue_declare('', exclusive=True)
 # 헤당 큐 이름 저장
 queue_name = result.method.queue
 
-#라우팅 키 설정(확장성을 고려하여 리스트로 함)
-binding_keys = ["test.#"]
+#바인딩 키 설정(확장성을 고려하여 리스트로 함)
+binding_keys = ["frontier.#"]
 
 #바인딩
 for binding_key in binding_keys:
@@ -28,14 +31,19 @@ def ready():
 
 #takeoff
 def takeoff(altitude):
-    print('이륙')
+    print('이륙~~')
     #mavSDK_api 이륙 관련 함수
+
+def land():
+    print('착륙~~')
+    #mavSDK_api 착륙 관련 함수
 
 #move
 def move(lat, lon, abs_alt):
-    print('이동')
+    print('이동 가즈아~~')
     #mavSDK_api 이동 관련 함수
 
+#adjust altitude
 def adjust_alt(target_alt):
     print('고도 조정(이동을 동반함)')
     #mavSDK_api 현재 위치 받아오는 함수
@@ -47,34 +55,41 @@ def drop():
     print('투하')
     #풀리 작동 및 열선 가열로 투하
 
-#여기서부터 시작하기(수정중)
-
 # 메시지 처리 함수
 def callback(ch, method, properties, body):
+    #byte -> dictionary 변환
+    decoded_body = body.decode('utf-8')
+    dictionary_body = json.loads(decoded_body)
+
+    #라우팅 키 
     routing_key = method.routing_key
+
+    #move
+    if routing_key == "test.move":
+        print(" [x] Received 'move' message:", dictionary_body)
+
+    #adjust altitude
+    elif routing_key == "test.altitude":
+        print(" [x] Received 'altitude' message:", dictionary_body)
+
     #takeoff
-    if routing_key == "test.takeoff":
-        print(" [x] Received 'takeoff' message:", body)
-        print(type(body))
+    elif routing_key == "test.takeoff":
+        print(" [x] Received 'takeoff' message:", dictionary_body)
+
     #land
     elif routing_key == "test.land":
-        print(" [x] Received 'land' message:", body)
-        print(type(body))
-    #move
-    elif routing_key == "test.move":
-        print(" [x] Received 'move' message:", body)
-        print(type(body))
-    #altitude
-    elif routing_key == "test.altitude":
-        print(" [x] Received 'altitude' message:", body)
-        print(type(body))
+        print(" [x] Received 'land' message:", dictionary_body)
+
+    #ready
+    elif routing_key == "test.ready":
+        print(" [x] Received 'ready' message:", dictionary_body)
+
     #drop
     elif routing_key == "test.drop":
-        print(" [x] Received 'drop' message. Dropping the message:", body)
-        print(type(body))
+        print(" [x] Received 'drop' message. Dropping the message:", dictionary_body)
+
     else:
-        print(f" [x] Received unknown message: {routing_key}: {body}")
-        print(type(body))
+        print(f" [x] Received unknown message: {routing_key}: {dictionary_body}")
 
 # 메시지 수신
 channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=True)
@@ -82,13 +97,17 @@ channel.basic_consume(queue=queue_name, on_message_callback=callback, auto_ack=T
 # 메시지 처리 시작
 channel.start_consuming()
 
-#상현이가 짠 mavSDK 코드에서 필요한 파라미터들을 알아야 한다.
-#해당 파라미터들은 최초에 사용자(서버)로부터 얻고 consumer.py에서는 해당 파라미터들을 producer.py로부터 받아 저장해두어야 한다.
-#저장된 파라미터들이 mavSDK 코드에서 사용되어 드론이 임무를 수행하게 될 것이다.
+#[요구사항]
+#1. mavSDK_api 코드에서 필요한 파라미터들을 알아야 한다.
+#2. 해당 데이터(파라미터들)을 포함하는 메시지를 producer에게 받아야 한다. (producer는 서버로부터 데이터를 받음)
+#3. 메시지에 포함된 파라미터를 이용하여 mavSDK_api 내부 함수를 호출해야 한다.
 
-#필요한 드론 동작에는 무엇이 있지??
-#1. 이륙 
-#2. 착륙 
-#3. 이동 : waypoint를 1개 이상 지정해야 할 거임(따라서 위도/경도 리스트가 필요하다)
-#4. 고도 조정 -> 상승 또는 하강할 높이값
-#5. 투하 : mavSDK와 관련은 없지만 해당 명령을 받으면 모터/열선 작동해야함 -> 나무로부터의 높이, 모터 회전 속도(상수), 높이와 회전 속도로 구한 회전시간
+#[이 코드의 작동방식 및 역할]
+#1. producer로부터 mavSDK_api를 운영하기 위한 파라미터가 포함된 메시지를 받는다.
+#2. 라우팅 키(test.takeoff, test.land 등)를 기준으로 미션을 구분하여 함수(takeoff, land 등)가 작동한다.
+    # *** 미션: 드론의 모든 동작(준비, 이륙, 이동, 착륙 등) ***
+    # *** 한 메시지당 하나의 미션에 대한 데이터를 가지고 있다. ***
+#3. 함수(takeoff, land 등)에는 mavSDK_api에 존재하는 함수를 이용하여 드론을 동작시킨다. 
+#4. 한 미션이 끝날 때마다 producer에게 메시지 처리 완료를 통지한다.
+
+# *** 정리하면 이 코드는 producer에세 메시지를 받아 mavSDK_api를 이용하여 직접적으로 드론에게 동작을 명령하는 역할을 한다. ***
