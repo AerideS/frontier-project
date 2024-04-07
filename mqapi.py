@@ -22,15 +22,18 @@ class MqReceiver:
     
     '''
     
-    def __init__(self, exchange) -> None:
+    def __init__(self, exchange, server_ip) -> None:
         self.exchange_name = exchange
+        self.server_ip = server_ip
         self.connect_Server()
         self.createQueue()
+        #self.start()
     
     def connect_Server(self):
 
-        #서버 연결
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(SERVER_IP))
+        # 서버 연결
+        # todo 본 부분에 서버 연결 실패시 예외처리 필요
+        self.connection = pika.BlockingConnection(pika.ConnectionParameters(self.server_ip))
         self.channel = self.connection.channel()
 
         #exchange 선언
@@ -53,7 +56,7 @@ class MqReceiver:
 
         #바인딩
         for binding_key in binding_keys:
-            self.channel.queue_bind(exchange='test_exchange', queue=queue_name, routing_key=binding_key)
+            self.channel.queue_bind(exchange=self.exchange_name, queue=queue_name, routing_key=binding_key)
 
         print(' [*] Waiting for logs. To exit press CTRL+C')
         
@@ -98,6 +101,20 @@ class MqReceiver:
 
         # 메시지 처리 시작
         self.channel.start_consuming()
+        
+    def getOneMessage(self):
+        '''
+        메세지가 들어올때까지 대기하다 메세지를 받을 경우 메세지 반환
+        '''
+        
+        method_frame, header_frame, body = None, None, None
+        print("waiting for message")
+        while True:
+            method_frame, header_frame, body = self.channel.basic_get(queue=self.exchange_name, auto_ack=True)
+            if method_frame:
+                break
+            
+        return body.decode()
 
 
 class MqSender:
@@ -144,8 +161,15 @@ class MqSender:
         message = json.dumps(data)
 
         #메시지 송신
-        self.channel.basic_publish(exchange='test_exchange', routing_key=routing_key, body=message)
+        self.channel.basic_publish(exchange=self.exchange_name, routing_key=routing_key, body=message)
         print(f"Sent message: {message}")
+        
+    def arm(self):
+        # todo ... 명령별로 함수 구성 및 파라미터 받도록 해야 함
+        pass
+    
+    def takeoff(self):
+        pass
         
     def close(self):
         self.connection.close()
@@ -153,19 +177,21 @@ class MqSender:
 if __name__ == '__main__':
     
     #테스트
-    sender = MqSender('test_queue', 'localhost')
-    
-    sender.send_message("ready", "this is ready")
-    sender.send_message("takeoff", "this is takeoff")
-    sender.send_message("land", "this is landing")
-    sender.send_message("move", [{"lat": "37.7749", "lon": "-122.4194"}, {"lat": "38.8895", "lon": "-77.0352"}])
-    sender.send_message("altitude", {"alt": "1000"})
-    sender.send_message("drop", {"height": "500"})
-    sender.send_message("mistake", "this is mistake")
+    TEST = 1
+    if TEST == 1:
+        sender = MqSender('drone1', 'localhost')
+        
+        sender.send_message("ready", "this is ready")
+        sender.send_message("takeoff", "this is takeoff")
+        sender.send_message("land", "this is landing")
+        sender.send_message("move", [{"lat": "37.7749", "lon": "-122.4194"}, {"lat": "38.8895", "lon": "-77.0352"}])
+        sender.send_message("altitude", {"alt": "1000"})
+        sender.send_message("drop", {"height": "500"})
+        sender.send_message("mistake", "this is mistake")
     # 연결 종료
-    sender.connection.close()
-    
-    receiver = MqReceiver('test_queue', 'localhost')
-    receiver.start()
+        sender.connection.close()
+    else:    
+        receiver = MqReceiver('test_queue', 'localhost')
+        receiver.start()
 
 
