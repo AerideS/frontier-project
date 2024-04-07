@@ -174,7 +174,9 @@ class MqSender:
         
     def arm(self):
         # todo ... 명령별로 함수 구성 및 파라미터 받도록 해야 함
-        message = 'arm'
+        message = {
+            'type' : 'arm'
+            }
         self.send_message("arm", message)
     
     def takeoff(self, altitude):
@@ -207,11 +209,15 @@ class MqSender:
         self.send_message("wait", message)
 
     def land(self):
-        message = 'land'
+        message = {
+            'type' : 'land'
+            }
         self.send_message("land", message)
 
     def disarm(self):
-        message = 'disarm'
+        message = {
+            'type' :'disarm'
+            }
         self.send_message("disarm", message)
     
     def startDrop(self, latitude, longitude):
