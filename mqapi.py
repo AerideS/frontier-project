@@ -170,6 +170,14 @@ class MqSender:
     
     def takeoff(self):
         pass
+    
+    def move(self, latitude, longitude):
+        message = {
+            'type' : 'move',
+            'latitude' : latitude,
+            'longitude' : longitude
+        }
+        self.send_message("move", message)
         
     def close(self):
         self.connection.close()
