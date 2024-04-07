@@ -1,5 +1,5 @@
 import pika, json
-
+import threading
 
 SERVER_IP = 'localhost'
 
@@ -52,7 +52,7 @@ class MqReceiver:
         queue_name = result.method.queue
 
         #바인딩 키 설정(확장성을 고려하여 리스트로 함)
-        binding_keys = ["frontier.#"]
+        binding_keys = ["frontier.*"]
 
         #바인딩
         for binding_key in binding_keys:
@@ -61,36 +61,44 @@ class MqReceiver:
         print(' [*] Waiting for logs. To exit press CTRL+C')
         
     def callback(self, ch, method, properties, body):
-    #byte -> dictionary 변환
+        #byte -> dictionary 변환
         decoded_body = body.decode('utf-8')
         dictionary_body = json.loads(decoded_body)
 
         #라우팅 키 
         routing_key = method.routing_key
 
-        #move
-        if routing_key == "test.move":
-            print(" [x] Received 'move' message:", dictionary_body)
+        #goto
+        if routing_key == "frontier.goto":
+            print(" [x] Received 'goto' message:", dictionary_body)
+        
+        #setElev
+        elif routing_key == "frontier.setElev":
+            print(" [x] Received 'setElev' message:", dictionary_body)
 
-        #adjust altitude
-        elif routing_key == "test.altitude":
-            print(" [x] Received 'altitude' message:", dictionary_body)
+        #wait
+        elif routing_key == "frontier.wait":
+            print(" [x] Received 'wait' message:", dictionary_body)
 
         #takeoff
-        elif routing_key == "test.takeoff":
+        elif routing_key == "frontier.takeoff":
             print(" [x] Received 'takeoff' message:", dictionary_body)
 
         #land
-        elif routing_key == "test.land":
+        elif routing_key == "frontier.land":
             print(" [x] Received 'land' message:", dictionary_body)
 
-        #ready
-        elif routing_key == "test.ready":
-            print(" [x] Received 'ready' message:", dictionary_body)
+        #arm
+        elif routing_key == "frontier.arm":
+            print(" [x] Received 'arm' message:", dictionary_body)
 
-        #drop
-        elif routing_key == "test.drop":
-            print(" [x] Received 'drop' message. Dropping the message:", dictionary_body)
+        #disarm
+        elif routing_key == "frontier.disarm":
+            print(" [x] Received 'disarm' message:", dictionary_body)
+
+        #startDrop
+        elif routing_key == "frontier.startDrop":
+            print(" [x] Received 'startDrop' message.", dictionary_body)
 
         else:
             print(f" [x] Received unknown message: {routing_key}: {dictionary_body}")
@@ -162,44 +170,102 @@ class MqSender:
 
         #메시지 송신
         self.channel.basic_publish(exchange=self.exchange_name, routing_key=routing_key, body=message)
-        print(f"Sent message: {message}")
+        print(f" Sent message: {message}")
         
     def arm(self):
         # todo ... 명령별로 함수 구성 및 파라미터 받도록 해야 함
-        pass
+        message = 'arm'
+        self.send_message("arm", message)
     
-    def takeoff(self):
-        pass
-    
-    def move(self, latitude, longitude):
+    def takeoff(self, altitude):
         message = {
-            'type' : 'move',
+            'type' : 'takeoff',
+            'altitude' : altitude
+        }
+        self.send_message("takeoff", message)
+    
+    def goto(self, latitude, longitude):
+        message = {
+            'type' : 'goto',
             'latitude' : latitude,
             'longitude' : longitude
         }
-        self.send_message("move", message)
+        self.send_message("goto", message)
         
+    def setElev(self, altitude):
+        message = {
+            'type' : 'setElev',
+            'altitude' : altitude
+        }
+        self.send_message("setElev", message)
+
+    def wait(self, time):
+        message = {
+            'type' : 'wait',
+            'time' : time
+        }
+        self.send_message("wait", message)
+
+    def land(self):
+        message = 'land'
+        self.send_message("land", message)
+
+    def disarm(self):
+        message = 'disarm'
+        self.send_message("disarm", message)
+    
+    def startDrop(self, latitude, longitude):
+        message = {
+            'type' : 'startDrop',
+            'latitude' : latitude,
+            'longitude' : longitude
+        }
+        self.send_message("startDrop", message)
+
+
     def close(self):
         self.connection.close()
 
+
+import time
+
+#테스트용 함수!
+def test_receiver():
+    receiver = MqReceiver('drone1', 'localhost')
+    receiver.start()
+
+def test_sender():
+    sender = MqSender('drone1', 'localhost')
+
+    time.sleep(1)
+    sender.arm()
+    time.sleep(1)
+    sender.takeoff(30)
+    time.sleep(1)
+    sender.goto(35.1541529, 128.0929031)
+    time.sleep(1)
+    sender.setElev(50)
+    time.sleep(1)
+    sender.wait(60)
+    time.sleep(1)
+    sender.land()
+    time.sleep(1)
+    sender.disarm()
+    time.sleep(1)
+    sender.startDrop(35.1541529, 128.0929031)
+    time.sleep(1)
+    sender.send_message('mistake', 'I am mistake')
+
+    # 연결 종료
+    sender.connection.close()
+
 if __name__ == '__main__':
-    
-    #테스트
+    # 테스트 수행
     TEST = 1
     if TEST == 1:
-        sender = MqSender('drone1', 'localhost')
-        
-        sender.send_message("ready", "this is ready")
-        sender.send_message("takeoff", "this is takeoff")
-        sender.send_message("land", "this is landing")
-        sender.send_message("move", [{"lat": "37.7749", "lon": "-122.4194"}, {"lat": "38.8895", "lon": "-77.0352"}])
-        sender.send_message("altitude", {"alt": "1000"})
-        sender.send_message("drop", {"height": "500"})
-        sender.send_message("mistake", "this is mistake")
-    # 연결 종료
-        sender.connection.close()
-    else:    
+        # test_sender_receiver 함수를 쓰레드로 실행
+        threading.Thread(target=test_receiver).start()
+        threading.Thread(target=test_sender).start()
+    else:
         receiver = MqReceiver('test_queue', 'localhost')
         receiver.start()
-
-
