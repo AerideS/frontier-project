@@ -2,6 +2,7 @@ import mqapi
 import argparse
 from networkChecker import networkChecker
 from multiprocessing import Process
+from dropper import *
 
 class DroneMode:
     '''
@@ -11,9 +12,32 @@ class DroneMode:
     arm, 이륙, 이동, 고도변경, 착륙의 동작을 수행함
     '''
     
-    def __init__(self) -> None:
-        pass    
+    def __init__(self, parent) -> None:
+        self.parent = parent
     
+    def start(self):
+        pass
+    
+    def processMessage(self):
+        while True: 
+            single_message = self.receiver.getOneMessage()
+            print(single_message)       
+
+            if single_message['type'] == 'takeoff':
+                self.vehicle.takeoff()
+            elif single_message['type'] == 'goto':
+                self.vehicle.goto(single_message['latitude'], single_message['longitude'])
+            elif single_message['type'] == 'setElev':
+                self.vehicle.setElev(single_message['altitude'])
+            elif single_message['type'] == 'wait':
+                self.vehicle.wait(single_message['time'])
+            elif single_message['type'] == 'land':
+                self.vehicle.land(single_message['time'])
+            elif single_message['type'] == 'disarm':
+                #disarm은 아마 착륙하면 자동으로 될것
+                pass
+            elif single_message['type'] == 'startDrop':
+                self.parent.changeMode("Drop")
 
 class NormalMode(DroneMode):
     '''
@@ -22,10 +46,10 @@ class NormalMode(DroneMode):
     def __init__(self) -> None:
         super().__init__()
         
-    def start():
-        pass
+    def start(self):
+        super().start()
     
-    def stop():
+    def stop(self):
         pass
 
 class SeekMode(DroneMode):
@@ -36,10 +60,10 @@ class SeekMode(DroneMode):
     def __init__(self) -> None:
         super().__init__()
         
-    def start():
+    def start(self):
         pass
     
-    def stop():
+    def stop(self):
         pass
 
 class DropMode(DroneMode):
@@ -49,11 +73,12 @@ class DropMode(DroneMode):
     '''
     def __init__(self) -> None:
         super().__init__()
+        self.dropper = Dropper()
 
-    def start():
+    def start(self):
         pass
     
-    def stop():
+    def stop(self):
         pass
  
 class ReturnMode(DroneMode):
@@ -64,10 +89,10 @@ class ReturnMode(DroneMode):
     def __init__(self) -> None:
         super().__init__()
 
-    def start():
+    def start(self):
         pass
     
-    def stop():
+    def stop(self):
         pass
 
 class Drone:
@@ -81,22 +106,31 @@ class Drone:
         
         self.networkChecker = networkChecker() # todo.. 모듈 연결 필요
         
-        self.mode = NormalMode()        
+        self.mode = NormalMode() # 초기 모듈
         
-    def start(self):
-        while True: 
-            single_message = self.receiver.getOneMessage()
-            print(single_message)       
-
-            if single_message['']
+    def changeMode(self, mode):
+        self.mode.stop(self)
         
+        if mode == "Normal":
+            self.mode = NormalMode()
+            
+        elif mode == "Seek":
+            self.mode = SeekMode()
         
-    
+        elif mode == "Drop":
+            self.mode = DropMode()
+            
+        elif mode == "Return":
+            self.mode = ReturnMode()
+            
+        self.mode.start(self)
+            
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='드론 작동을 위한 기본 정보')
     parser.add_argument('--name', help=' : 현재 드론의 이름')
     parser.add_argument('--server', help=' : 서버 주소')
     args = parser.parse_args()  
+    
     print(args.name, args.server)
     drone = Drone(args.name, args.server)
     drone.start()

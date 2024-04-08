@@ -1,11 +1,27 @@
 import asyncio
 import math
 from mavsdk import System
+from multiprocessing import *
 
 class Vehicle:
     def __init__(self) -> None:
+        self.initConnect()
         
-    
+        
+    def initConnect(self):
+        self.drone = System()
+        print("드론 연결 대기 중...")
+        async for state in self.drone.core.connection_state():
+            if state.is_connected:
+                print(f"드론 발견!")
+                break
+
+        print("드론의 전역 위치 추정 대기 중...")
+        async for health in self.drone.telemetry.health():
+            if health.is_global_position_ok:
+                print("전역 위치 추정 완료")
+                break
+        
     
 
     def calculate_distance(lat1, lon1, alt1, lat2, lon2, alt2):
@@ -31,30 +47,30 @@ class Vehicle:
         distance_with_altitude = math.sqrt(distance ** 2 + (alt2 - alt1) ** 2)
         return distance_with_altitude
 
-async def fly_to_location(drone, target_latitude, target_longitude, target_altitude):
-    # 드론을 목표 위치로 이동시킵니다.
-    await drone.action.goto_location(target_latitude, target_longitude, target_altitude, 0)
-    print("목표 위치로 이동 중...")
+    async def fly_to_location(self, drone, target_latitude, target_longitude, target_altitude):
+        # 드론을 목표 위치로 이동시킵니다.
+        await self.drone.action.goto_location(target_latitude, target_longitude, target_altitude, 0)
+        print("목표 위치로 이동 중...")
 
-async def check_arrival(drone, target_latitude, target_longitude, target_altitude):
-    async for telemetry_data in drone.telemetry.position():
-        # 드론의 현재 위치 데이터를 가져옵니다.
-        current_latitude = telemetry_data.latitude_deg
-        current_longitude = telemetry_data.longitude_deg
-        current_altitude = telemetry_data.absolute_altitude_m
+    async def check_arrival(self, drone, target_latitude, target_longitude, target_altitude):
+        async for telemetry_data in drone.telemetry.position():
+            # 드론의 현재 위치 데이터를 가져옵니다.
+            current_latitude = telemetry_data.latitude_deg
+            current_longitude = telemetry_data.longitude_deg
+            current_altitude = telemetry_data.absolute_altitude_m
 
-        # 현재 위치와 목표 위치 간의 거리를 계산합니다. 드론의 고도를 고려하여 계산합니다.
-        distance_to_target = calculate_distance(current_latitude, current_longitude, current_altitude,
-                                                target_latitude, target_longitude, target_altitude)
+            # 현재 위치와 목표 위치 간의 거리를 계산합니다. 드론의 고도를 고려하여 계산합니다.
+            distance_to_target = self.calculate_distance(current_latitude, current_longitude, current_altitude,
+                                                    target_latitude, target_longitude, target_altitude)
 
-        # 일정 거리 내에 도착하면 반복문을 종료합니다. 여기서는 1m로 설정합니다.
-        if distance_to_target < 1:  
-            break
+            # 일정 거리 내에 도착하면 반복문을 종료합니다. 여기서는 1m로 설정합니다.
+            if distance_to_target < 1:  
+                break
 
-    # 도착 후에 착륙을 호출합니다.
-    print("-- 목표 위치에 도착")
-    print("-- 착륙 중")
-    await drone.action.land()
+        # 도착 후에 착륙을 호출합니다.
+        print("-- 목표 위치에 도착")
+        print("-- 착륙 중")
+        await drone.action.land()
 
 async def run():
     # 드론과 연결합니다.
