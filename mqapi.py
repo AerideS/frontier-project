@@ -45,7 +45,6 @@ class MqReceiver:
         result=self.channel.queue_declare(queue=self.exchange_name, durable=True) 
         #durable=True : 큐가 영속적인 것의 의미, 해당 큐를 디스크에 저장하고, 서버가 재시작되어도 큐와 큐에 포함된 메시지가 유지
         
-
         # #임시 큐 생성
         # result = channel.queue_declare('', exclusive=True)
         # 헤당 큐 이름 저장
