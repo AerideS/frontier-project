@@ -40,7 +40,7 @@ async def run():
         # 이동에 소요될 예상 시간 계산 (단위: 초)
         move_duration = diagonal_distance / DRONE_SPEED
 
-        # 대기 시간 계산 (여유를 두기 위해 10초 추가)
+        # 대기 시간 계산
         wait_duration = move_duration
 
         # 이동 처리
