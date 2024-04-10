@@ -1,12 +1,23 @@
 # app.py
-from flask import Flask, render_template
+from flask import Flask, request, render_template
 
 #Flask 객체 인스턴스 생성
 app = Flask(__name__)
 
-@app.route('/') # 접속하는 url
+@app.route('/', methods=['GET', 'POST']) # 접속하는 url
 def index():
-  return render_template('index.html',user="반원",data={'level':60,'point':360,'exp':45000})
+  return render_template('main.html') 
+
+@app.route('/service', methods=['GET', 'POST'])
+def service():
+  latitude = request.form['latitude']
+  longitude = request.form['longitude']
+  altitude = request.form['altitude']
+  print("latitude : " + latitude)
+  print("longitude : " + longitude)
+  print("altitude : " + altitude)
+  return render_template('service.html') 
+
 
 if __name__=="__main__":
   app.run(host="0.0.0.0", port="5000", debug=True)

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Animate a point along a route</title>
+<meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+<style>
+body { margin: 0; padding: 0; }
+#map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 50%;
+}
+.input {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(50% + 50px);
+    width: calc(50% - 50px);
+}
+.input .welcome {
+    font-size: large;
+}
+
+</style>
+</head>
+<body>
+
+<script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+<div id="map"></div>
+
+<div class = "input">
+    <form action = "http://203.255.57.136:5000/service" method = "POST">
+        <p class = "welcome">Welcome to GCS Service</p>
+        <p>latitude</p>
+        <input type = "text" name = "latitude" />
+        <p>longitude</p>
+        <input type = "text" name = "longitude"/>
+        <p>altitude</p>
+        <input type = "text" name = "altitude" />
+        <p><input type = "submit" value = "submit" /></p>
+    </form>
+</div>
+
+<script>
+	mapboxgl.accessToken = 'pk.eyJ1IjoibGdoNjk2MyIsImEiOiJjbHRwaWJ5NXAwNjNpMmpwZmo0dzg5MmcyIn0.WRICTXvdHP46wiy2GmLJDw';
+    const map = new mapboxgl.Map({
+        container: 'map',
+        // Choose from Mapbox's core styles, or make your own style with Mapbox Studio,
+        style: 'mapbox://styles/mapbox/dark-v11',
+        center: [128.0996, 35.1531],
+        zoom: 14,
+        pitch: 40
+    });
+</script>
+
+</body>
+</html>
