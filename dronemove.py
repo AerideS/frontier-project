@@ -1,15 +1,17 @@
 import sys
 import asyncio
 from mavsdk import System
-SYSTEM_ADDRESS="udp://:14540"
+SYSTEM_ADDRESS="udp://127.0.0.1:14540"
 
 class DroneController:
     def __init__(self, system_address=SYSTEM_ADDRESS):
-        # self.drone = Drone()  # Drone 클래스의 인스턴스 생성
+        self.drone = System()  # Drone 클래스의 인스턴스 생성
         self.system_address = system_address
 
     async def connect(self):
+        print('will connected')
         await self.drone.connect(self.system_address)  # 드론 연결
+        print('connected')
 
     async def takeoff(self):
         print("-- 이륙 중")

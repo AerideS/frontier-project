@@ -44,7 +44,7 @@ class networkChecker:
         async for result in self.ping():
             print(result)
             
-    async def stopPing(self):
+    async def stop(self):
         self.keep_ping = False
             
         

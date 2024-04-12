@@ -4,8 +4,10 @@ from networkChecker import networkChecker
 from multiprocessing import Process
 from dropper import *
 import asyncio
+from vehicle import Vehicle
 
 PING_PERIOD = 5
+DRONE_ADDRESS = 'udp://:14540'
 
 class DroneMode:
     '''
@@ -18,50 +20,49 @@ class DroneMode:
     def __init__(self, parent) -> None:
         self.parent = parent
         
-        self.receiver = mqapi.MqReceiver(parent.drone_name, parent.server_ip)
+        self.receiver = mqapi.MqReceiverAsync(parent.drone_name, parent.server_ip)
         
-        self.vehicle = None # todo.. 모듈 연결 필요
+        #self.vehicle = Vehicle(DRONE_ADDRESS) # todo.. 모듈 연결 필요
         
-        self.networkChecker = networkChecker(parent.server_ip, PING_PERIOD) # todo.. 모듈 구현 필요
-        
+        self.networkChecker = networkChecker(parent.server_ip, PING_PERIOD) # todo.. 모듈 구현 필요        
         
         self.task_list = []
         self.created_task_list = []
         
         self.task_list.append(self.processMessage())
-        
         self.task_list.append(self.checkNetwork())
+        
+        
     
     async def processMessage(self):
         '''
         receiver에서 메세지를 받아 해석 후 명령 수행
         '''
-        while True: 
-            single_message = await self.receiver.getOneMessage()
+        print('waiting for message')
+        async for single_message in self.receiver.getMessage():
             print(single_message)       
-
-            if single_message['type'] == 'takeoff':
+            print(type(single_message))
+            if single_message["type"] == 'takeoff':
                 await self.vehicle.takeoff()
-            elif single_message['type'] == 'goto':
+            elif single_message["type"] == 'goto':
                 await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
-            elif single_message['type'] == 'setElev':
+            elif single_message["type"] == 'setElev':
                 await self.vehicle.setElev(single_message['altitude'])
-            elif single_message['type'] == 'wait':
+            elif single_message["type"] == 'wait':
                 await self.vehicle.wait(single_message['time'])
-            elif single_message['type'] == 'land':
+            elif single_message["type"] == 'land':
                 await self.vehicle.land(single_message['time'])
-            elif single_message['type'] == 'disarm':
+            elif single_message["type"] == 'disarm':
                 #disarm은 아마 착륙하면 자동으로 될것
                 pass
-            elif single_message['type'] == 'startDrop':
+            elif single_message["type"] == 'startDrop':
                 self.parent.changeMode("Drop")
                 
     async def checkNetwork(self):
         '''
         서버로 보낸 ping이 돌아오는지 확인
         '''
-        for response in self.networkChecker.ping():
-            # if response is False:
+        async for response in self.networkChecker.ping():
             print(response)
             
             
@@ -75,8 +76,9 @@ class DroneMode:
     def start(self):
         asyncio.run(self.start_task())
     
-    def stop():
-        pass
+    def stop(self):
+        for single_task in self.created_task_list:
+            single_task.cancel()
     
     
                 
@@ -103,11 +105,16 @@ class SeekMode(DroneMode):
     def __init__(self, parent) -> None:
         super().__init__(parent)
         
-    def start(self):
+        self.task_list.append(self.yoloModule())
+    
+    def yoloModule(self):
         pass
+        
+    def start(self):
+        super().start()
     
     def stop(self):
-        pass
+        super().stop()
 
 class DropMode(DroneMode):
     '''
@@ -116,6 +123,7 @@ class DropMode(DroneMode):
     '''
     def __init__(self, parent) -> None:
         super().__init__(parent)
+        
         self.dropper = Dropper()
 
     def start(self):
