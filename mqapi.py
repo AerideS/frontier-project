@@ -1,7 +1,38 @@
 import pika, json
 import threading
+import aio_pika
+import asyncio
 
 SERVER_IP = 'localhost'
+
+
+'''
+    # todo : 전송하다가 뻑나는 경우 있음, 서버 연결 실패 등등
+    해당 경우 예외 처리 할 수 있을 것
+'''
+
+
+class MqReceiverAsync:
+    def __init__(self, device_name, server_ip) -> None:
+        self.server_ip = server_ip
+        self.device_name = device_name
+
+    async def getMessage(self):
+        # RabbitMQ 연결 설정
+        connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
+        async with connection:
+            # 채널 열기
+            channel = await connection.channel()
+            
+            # 큐 선언
+            queue = await channel.declare_queue(name=self.device_name, durable=True)
+            
+            # 메시지 받기
+            async for message in queue:
+                async with message.process():
+                    # 메시지 처리
+                    yield json.loads(message.body.decode())
+
 
 class MqReceiver:
     '''
@@ -57,7 +88,6 @@ class MqReceiver:
         for binding_key in binding_keys:
             self.channel.queue_bind(exchange=self.exchange_name, queue=queue_name, routing_key=binding_key)
 
-        print(' [*] Waiting for logs. To exit press CTRL+C')
         
     def callback(self, ch, method, properties, body):
         #byte -> dictionary 변환
@@ -109,11 +139,10 @@ class MqReceiver:
         # 메시지 처리 시작
         self.channel.start_consuming()
         
-    def getOneMessage(self):
+    async def getMessage(self):
         '''
         메세지가 들어올때까지 대기하다 메세지를 받을 경우 메세지 반환
-        '''
-        
+        '''        
         method_frame, header_frame, body = None, None, None
         print("waiting for message")
         while True:
@@ -121,8 +150,7 @@ class MqReceiver:
             if method_frame:
                 break
             
-        return body.decode()
-
+            yield body.decode() 
 
 class MqSender:
     '''
@@ -145,6 +173,8 @@ class MqSender:
         #         -> absolute_altitude_m(평균 해수면 기준), yaw_deg(NED좌표계, 북쪽이 0도, 시계방향이 양)
         #4. 고도 조정 : 
         #5. 투하 : 
+        
+        # todo, 대상 이름 지정할 수 있도록 할 것
     '''
     def __init__(self, exchange, server_ip) -> None:
         self.exchange_name = exchange
