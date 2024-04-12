@@ -154,6 +154,9 @@ class Drone:
         self.mode = NormalMode(self) # 초기 모듈
         
     def changeMode(self, mode):
+        '''
+        모드 변경을 위한 코드
+        '''
         self.mode.stop(self)
         
         if mode == "Normal":
