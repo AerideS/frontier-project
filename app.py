@@ -10,14 +10,19 @@ def index():
 
 @app.route('/service', methods=['GET', 'POST'])
 def service():
-  latitude = request.form['latitude']
-  longitude = request.form['longitude']
-  altitude = request.form['altitude']
-  print("latitude : " + latitude)
-  print("longitude : " + longitude)
-  print("altitude : " + altitude)
-  return render_template('service.html') 
-
+  try:
+    latitude = request.form['latitude']
+    longitude = request.form['longitude']
+    altitude = request.form['altitude']
+    print("latitude : " + latitude)
+    print("longitude : " + longitude)
+    print("altitude : " + altitude)
+    return render_template('service.html') 
+  except:
+    data = request.json
+    new_point = data.get('newPoint')
+    print('수신된 newPoint:', new_point)
+    return render_template('service.html') 
 
 if __name__=="__main__":
   app.run(host="0.0.0.0", port="5000", debug=True)

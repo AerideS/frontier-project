@@ -44,6 +44,36 @@ body { margin: 0; padding: 0; }
         pitch: 40
     });
 
+    marker = []
+    map.on('click', (e) => {
+        newPoint = [e.lngLat.lng, e.lngLat.lat];
+        marker.push(new mapboxgl.Marker()
+        .setLngLat(newPoint)
+        .addTo(map));
+        alert("WP " + marker.length + " Setted")
+
+        // newPoint 변수를 Flask로 보내기
+        fetch('/service', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ newPoint: newPoint })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('서버 오류');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('서버로부터의 응답:', data);
+        })
+        .catch(error => {
+            console.error('오류 발생:', error);
+        });
+    })
+
     // San Francisco
     const origin = [128.0928, 35.1544];
 
