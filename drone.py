@@ -18,20 +18,22 @@ class DroneMode:
     '''
     
     def __init__(self, parent) -> None:
+        '''
+        todo : 실행 주체에 따라 객체를 parent에 할당할지, self에 할당할지 결정 필요
+        '''
         self.parent = parent
         
         self.receiver = mqapi.MqReceiverAsync(parent.drone_name, parent.server_ip)
         
         #self.vehicle = Vehicle(DRONE_ADDRESS) # todo.. 모듈 연결 필요
         
-        self.networkChecker = networkChecker(parent.server_ip, PING_PERIOD) # todo.. 모듈 구현 필요        
+        self.networkChecker = networkChecker(parent.server_ip, PING_PERIOD)     
         
         self.task_list = []
         self.created_task_list = []
         
         self.task_list.append(self.processMessage())
-        self.task_list.append(self.checkNetwork())
-        
+        self.task_list.append(self.checkNetwork())        
         
     
     async def processMessage(self):
@@ -79,9 +81,7 @@ class DroneMode:
     def stop(self):
         for single_task in self.created_task_list:
             single_task.cancel()
-    
-    
-                
+                   
     
     
 class NormalMode(DroneMode):
@@ -155,7 +155,10 @@ class Drone:
         
     def changeMode(self, mode):
         '''
-        모드 변경을 위한 코드
+        모드 변경을 위함
+        기존 동작중인 모드를 정지하고
+        mode값에 해당하는 모드로 변경한 후
+        해당 모드 실행
         '''
         self.mode.stop(self)
         
@@ -170,6 +173,12 @@ class Drone:
             
         elif mode == "Return":
             self.mode = ReturnMode(self)
+        else:
+            '''
+            mode 전달과정에서 오류 발생시 normal mode로
+            변경
+            '''
+            self.mode = NormalMode(self)
             
         self.mode.start(self)
     
