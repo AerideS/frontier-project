@@ -3,14 +3,23 @@ import torch
 import pathlib
 import math
 import asyncio
+
+# 윈도우 환경에서 작동할 때 사용
 # pathlib.PosixPath = pathlib.WindowsPath  # only for windows
 
 
 class FindTree:
     def __init__(self) -> None:
+        '''
+        초기화 과정, 
+        '''
         pass
     
     async def find_tree_coordinate(self):
+        '''
+        작동 과정
+        카메라 읽기 -> 이미지 객체 판독 -> 박스 결과 yield로 반환하기 반복
+        '''
         pass
     
 # YOLO_DIR = "C:/Users/HA/Downloads/yolov5-master"
