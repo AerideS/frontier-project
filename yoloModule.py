@@ -2,10 +2,19 @@ import cv2
 import torch
 import pathlib
 import math
+import asyncio
+# pathlib.PosixPath = pathlib.WindowsPath  # only for windows
 
-pathlib.PosixPath = pathlib.WindowsPath 
 
-YOLO_DIR = "C:/Users/HA/Downloads/yolov5-master"
+class FindTree:
+    def __init__(self) -> None:
+        pass
+    
+    async def find_tree_coordinate(self):
+        pass
+    
+# YOLO_DIR = "C:/Users/HA/Downloads/yolov5-master"
+YOLO_DIR = './' # 현재 경로
 # YOLOv5 경로 설정
 yolov5_path = pathlib.Path(YOLO_DIR)  # YOLOv5가 설치된 경로로 변경해야 합니다.
 
@@ -13,7 +22,7 @@ yolov5_path = pathlib.Path(YOLO_DIR)  # YOLOv5가 설치된 경로로 변경해�
 model = torch.hub.load(str(yolov5_path), "custom", "best.pt", source="local", verbose=False, force_reload=True)
 model.eval()
 
-# 웹캠에서 프레임 읽기
+# 웹캠에서 프레임 읽기 # todo : 오류 확인 할 것
 cap = cv2.VideoCapture(0)
 half_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)/2)
 half_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)/2)
@@ -87,3 +96,11 @@ while cap.isOpened():
 # 종료
 cap.release()
 cv2.destroyAllWindows()
+
+if __name__ == '__main__':
+    async def tester():
+        async for single_coordinate in tree_finder.find_tree_coordinate():
+            print(single_coordinate)
+    
+    tree_finder = FindTree()
+    asyncio.run()

@@ -6,6 +6,8 @@ from dropper import *
 import asyncio
 from vehicle import Vehicle
 
+from vehicle_stub import *
+
 PING_PERIOD = 5
 DRONE_ADDRESS = 'udp://:14540'
 
@@ -25,7 +27,8 @@ class DroneMode:
         
         self.receiver = mqapi.MqReceiverAsync(parent.drone_name, parent.server_ip)
         
-        #self.vehicle = Vehicle(DRONE_ADDRESS) # todo.. 모듈 연결 필요
+        self.vehicle = Vehicle(DRONE_ADDRESS) # todo.. 모듈 연결 필요\
+        # self.vehicle = Vehicle_Stub(DRONE_ADDRESS)
         
         self.networkChecker = networkChecker(parent.server_ip, PING_PERIOD)     
         
@@ -44,6 +47,10 @@ class DroneMode:
         async for single_message in self.receiver.getMessage():
             print(single_message)       
             print(type(single_message))
+            if "type" not in single_message:
+                print("not defined message")
+                continue
+                
             if single_message["type"] == 'takeoff':
                 await self.vehicle.takeoff()
             elif single_message["type"] == 'goto':
@@ -191,8 +198,8 @@ class Drone:
         
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='드론 작동을 위한 기본 정보')
-    parser.add_argument('--name', help=' : 현재 드론의 이름')
-    parser.add_argument('--server', help=' : 서버 주소')
+    parser.add_argument('-name', help=' : 현재 드론의 이름')
+    parser.add_argument('-server', help=' : 서버 주소')
     args = parser.parse_args()  
     
     drone = Drone(args.name, args.server)

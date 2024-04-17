@@ -7,7 +7,10 @@ class Vehicle:
     def __init__(self, system_address) -> None:
         self.system_address = system_address
         self.takeoff_altitude = None
-        asyncio.run(self.initConnect())
+        
+        # asyncio.run(self.initConnect())
+        asyncio.get_event_loop().run_until_complete(self.initConnect())
+        print(11)
         
     async def initConnect(self):
         self.drone_system = System()
@@ -24,6 +27,8 @@ class Vehicle:
             if health.is_global_position_ok:
                 print("전역 위치 추정 완료")
                 break
+            
+        print(1)
 
     async def arm(self):
         await self.drone_system.action.arm()  # 드론 연결
@@ -38,6 +43,9 @@ class Vehicle:
     async def setElev(self, altitude):
         print(f"고도 변경 중: {altitude}")
         await self.drone_system.setElev(altitude)  # 드론 고도 변경
+        
+    async def goto(self, longitude, latitude):
+        pass
 
     async def wait(self, time):
         print(f"{time}초 대기 중")
@@ -68,5 +76,10 @@ if __name__ == '__main__':
         
     system_address = 'udp://:14540'
     vehicle = Vehicle(system_address)
+    print(111)
     
-    asyncio.run(test_vehicle(vehicle))
+    # asyncio.run(test_vehicle(vehicle))
+    # asyncio.create_task(test_vehicle(vehicle))
+    # loop = asyncio.get_event_loop()
+    # loop.run_until_complete(test_vehicle(vehicle))
+
