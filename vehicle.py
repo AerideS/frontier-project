@@ -14,7 +14,8 @@ class Vehicle:
         self.system_address = system_address
         self.takeoff_altitude = None
         self.drone_system = None  # drone_system 속성 초기화
-
+        asyncio.run(self.initConnect())
+        
     async def initConnect(self):
         self.drone_system = System()
         await self.drone_system.connect(self.system_address)
@@ -32,16 +33,24 @@ class Vehicle:
                 break
 
     async def arm(self):
+        await self.initConnect()
         await self.drone_system.action.arm()  # 드론 연결
 
     async def takeoff(self):
+        await self.initConnect()
         print("-- 이륙 중")
         if self.takeoff_altitude != None:
             pass
-        self.takeoff_altitude = self.drone_system.action.get_takeoff_altitude()
+        # self.takeoff_altitude = self.drone_system.action.get_takeoff_altitude()
         await self.drone_system.action.takeoff()  # 드론 이륙
 
     async def goto(self, target_lat, target_lon, target_alt):
+        '''
+        input
+        output : 이동 결과
+        '''
+        
+        await self.initConnect()
         # 목표 위치 설정
         self.target_position = (target_lat, target_lon, target_alt)
 
@@ -122,14 +131,17 @@ class Vehicle:
 
     async def setElev(self, altitude):
         print(f"고도 변경 중: {altitude}")
+        await self.initConnect()
         await self.drone_system.setElev(altitude) 
         
     async def wait(self, time):
         print(f"{time}초 대기 중")
+        await self.initConnect()
         await self.drone_system.action.hold(time)
 
     async def land(self):
         print("-- 착륙 중")
+        await self.initConnect()
         self.takeoff_altitude = None
         await self.drone_system.action.land()  # 드론 착륙
 
@@ -139,7 +151,7 @@ class Vehicle:
 
     async def startDrop(self):
         # startDrop 이벤트가 발생하면 Drop 모드로 변경
-        await self.drone_system.changeMode("Drop")
+        self.drone_system.changeMode("Drop")
 
 async def main():
     system_address = 'udp://:14540'

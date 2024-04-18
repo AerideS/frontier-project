@@ -46,12 +46,14 @@ class DroneMode:
         print('waiting for message')
         async for single_message in self.receiver.getMessage():
             print(single_message)       
-            print(type(single_message))
+            # print(type(single_message))
             if "type" not in single_message:
                 print("not defined message")
                 continue
                 
-            if single_message["type"] == 'takeoff':
+            if single_message["type"] == 'arm':
+                await self.vehicle.arm()
+            elif single_message["type"] == 'takeoff':
                 await self.vehicle.takeoff()
             elif single_message["type"] == 'goto':
                 await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
