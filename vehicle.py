@@ -9,12 +9,25 @@ MIN_SAFE_DISTANCE = 2
 # 드론 이동 속도 (미터/초), 적절한 값으로 설정해야 함
 DRONE_SPEED = 2
 
+# 고도 정보 전송 주기
+LOCATION_BEACON_PERIOD = 5
+
+# 근접 범위 지정
+MOVE_ACCURACY = 1
+
 class Vehicle:
     def __init__(self, system_address) -> None:
         self.system_address = system_address
         self.takeoff_altitude = None
         self.drone_system = None  # drone_system 속성 초기화
         asyncio.run(self.initConnect())
+        
+    async def getLocation(self):
+        location = await self.drone_system.telemetry.position()
+        battery = await self.drone_system.telemetry.battery()
+        velocity = await self.drone_system.telemetry.velocity_ned()
+
+        yield location, battery, velocity    
         
     async def initConnect(self):
         self.drone_system = System()
@@ -67,8 +80,8 @@ class Vehicle:
             # 현재 위치와 목표 위치 사이의 거리 계산
             distance = self.calculate_distance(*self.current_position, *self.target_position)
         
-            # 거리가 1미터 이내인지 확인하여 반환
-            if distance <= 1:
+            # 거리가 기준 이내인지 확인하여 반환
+            if distance <= MOVE_ACCURACY:
                 break
 
         await asyncio.sleep(1)  # 1초 대기
