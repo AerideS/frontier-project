@@ -1,5 +1,6 @@
 import Jetson.GPIO as GPIO
 import time
+import math
 
 class MotorController:
     '''
@@ -11,14 +12,28 @@ class MotorController:
 
         [메모]
             서보모터 PWM 주기 : 50Hz(=200ms)
+            duty cycle 3~7.5% : 시계방향 (5%일 때 high 신호가 1ms)
             duty cycle 7.5%일 때 정지상태
-            duty cycle 5~7.5% : 시계방향 (5%일 때 high 신호가 1ms)
-            duty cycle 7.5~10% : 반시계방향 (10%일 때 high 신호가 2ms)
+            duty cycle 7.5~12% : 반시계방향 (10%일 때 high 신호가 2ms)
+
+            duty cycle percent | RPM
+                    3           100.1
+                    4           95.8
+                    5           82.3
+                    6           64.5
+                    7           22.9
+                    7.5         0
+                    8           -22.4
+                    9           -67.5
+                    10          -92.4
+                    11          -103.4
+                    12          -109.9
     '''
 
-    def __init__(self, distance, PWM_pin=33, period=50) -> None:
+    def __init__(self, PWM_pin=33, period=50) -> None:
         self.PWM_pin = PWM_pin
-        self.distance = distance
+        self.diameter = 22 #풀리 지름
+        self.speed = 0 #풀리 선속도
 
         #GPIO 채널 설정
         GPIO.setwarnings(False)
@@ -27,22 +42,39 @@ class MotorController:
 
         #pwm 객체 생성
         self.pwm = GPIO.PWM(PWM_pin, period)
+
+        self.pwm.start(0)
     
-    def set_avg_speed(self):
-        
-        pass
+    def cal_speed(self, duty_cycle_percent):
+        if duty_cycle_percent == 3:
+            # RPM을 라디안/초로 변환
+            angular_speed = 100 * 2 * math.pi / 60  # 1분에 2π 라디안이 1회전
+            # 선속도 계산
+            self.speed = self.diameter/2 * angular_speed #단위 : mm/2
+            self.speed = self.speed/1000 #단위 : m/s
+        else:
+            # RPM을 라디안/초로 변환
+            angular_speed = 103.4 * 2 * math.pi / 60  # 1분에 2π 라디안이 1회전
+            # 선속도 계산
+            self.speed = self.diameter/2 * angular_speed #단위 : mm/2
+            self.speed = self.speed/1000 #단위 : m/s
 
-    def set_rotate_time(self):
-        
-        pass
+    def cal_time(self, distance):
+        rotate_time = distance / self.speed
+        print('걸리는 시간 : ', rotate_time)
+        return rotate_time
 
-    def rotate_cw(self, duty_cycle_percent=5):
-        self.pwm.start(duty_cycle_percent)    
-        time.sleep(1)
-
-    def rotate_ccw(self, duty_cycle_percent=10):
+    def rotate_cw(self, distance, duty_cycle_percent):
+        self.cal_speed(duty_cycle_percent)
+        rotate_time = self.cal_time(distance)
         self.pwm.ChangeDutyCycle(duty_cycle_percent)
-        time.sleep(1)
+        time.sleep(rotate_time)
+
+    def rotate_ccw(self, distance, duty_cycle_percent):
+        self.cal_speed(duty_cycle_percent)
+        rotate_time = self.cal_time(distance)
+        self.pwm.ChangeDutyCycle(duty_cycle_percent)
+        time.sleep(rotate_time)
 
     def stop(self):
         self.pwm.stop()
@@ -53,9 +85,9 @@ if __name__ == '__main__':
      # 테스트 수행
     TEST = 1
     if TEST == 1:
-        motor=MotorController(12, 33, 50)
-        motor.rotate_cw(6.5)
-        motor.rotate_ccw(8.5)
+        motor=MotorController(33, 50)
+        motor.rotate_cw(1, 3)
+        motor.rotate_ccw(1, 11)
         motor.stop()
     else:
         pass
