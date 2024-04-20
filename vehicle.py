@@ -20,15 +20,28 @@ class Vehicle:
         self.system_address = system_address
         self.takeoff_altitude = None
         self.drone_system = None  # drone_system 속성 초기화
-        asyncio.run(self.initConnect())
         
     async def getLocation(self):
-        location = await self.drone_system.telemetry.position()
-        battery = await self.drone_system.telemetry.battery()
-        velocity = await self.drone_system.telemetry.velocity_ned()
-
-        yield location, battery, velocity    
-        
+        '''
+        현재 위치 종합하여 반환
+        '''
+        await self.initConnect()
+        while True:
+            battery, velocity, position = None, None, None
+            async for singel_vel in self.drone_system.telemetry.velocity_ned():
+                velocity = singel_vel
+                break
+            async for singel_bat in self.drone_system.telemetry.battery():
+                battery = singel_bat
+                break
+            async for singel_loc in self.drone_system.telemetry.position():
+                position = singel_loc
+                break
+            
+            yield velocity, battery, position    
+            
+        await asyncio.sleep(LOCATION_BEACON_PERIOD)
+            
     async def initConnect(self):
         self.drone_system = System()
         await self.drone_system.connect(self.system_address)
@@ -169,37 +182,44 @@ class Vehicle:
 async def main():
     system_address = 'udp://:14540'
     vehicle = Vehicle(system_address)
+    # drone_system = System()
+    # await drone_system.connect(system_address)
+    # async for bat in drone_system.telemetry.battery():
+    #     print(bat)
+    await vehicle.initConnect()
+    async for data in vehicle.getLocation():
+        velocity, battery, position = data
+        print(position, battery, velocity, sep='\n',end='\n------------------\n')
+    # if len(sys.argv) > 1:
+    #     command = sys.argv[1].lower()
 
-    if len(sys.argv) > 1:
-        command = sys.argv[1].lower()
+    #     loop = asyncio.get_event_loop()
 
-        loop = asyncio.get_event_loop()
-
-        if command == 'takeoff':
-            await vehicle.initConnect()
-            await vehicle.takeoff()
-        elif command == 'arm':
-            await vehicle.initConnect()
-            await vehicle.arm()
-        elif command == 'land':
-            await vehicle.initConnect()
-            await vehicle.land()
-        elif command == 'goto':
-            if len(sys.argv) != 5:
-                print("Usage: python script.py goto <latitude> <longitude> <altitude>")
-            else:
-                real_lat, real_lon, real_alt = map(float, sys.argv[2:])
-                await vehicle.initConnect()
-                await vehicle.goto(real_lat, real_lon, real_alt)
-        elif command == 'move_meters':
-            north_distance = float(input("북쪽으로 얼마나 이동하시겠습니까? (미터단위)"))
-            east_distance = float(input("동쪽으로 얼마나 이동하시겠습니까? (미터 단위): "))
-            await vehicle.initConnect()
-            await vehicle.move_meters(north_distance, east_distance)
-        else:
-            print("올바른 명령을 입력하세요.")
-    else:
-        print("명령을 입력하세요 (takeoff, land, goto, move_meters).")
+    #     if command == 'takeoff':
+    #         await vehicle.initConnect()
+    #         await vehicle.takeoff()
+    #     elif command == 'arm':
+    #         await vehicle.initConnect()
+    #         await vehicle.arm()
+    #     elif command == 'land':
+    #         await vehicle.initConnect()
+    #         await vehicle.land()
+    #     elif command == 'goto':
+    #         if len(sys.argv) != 5:
+    #             print("Usage: python script.py goto <latitude> <longitude> <altitude>")
+    #         else:
+    #             real_lat, real_lon, real_alt = map(float, sys.argv[2:])
+    #             await vehicle.initConnect()
+    #             await vehicle.goto(real_lat, real_lon, real_alt)
+    #     elif command == 'move_meters':
+    #         north_distance = float(input("북쪽으로 얼마나 이동하시겠습니까? (미터단위)"))
+    #         east_distance = float(input("동쪽으로 얼마나 이동하시겠습니까? (미터 단위): "))
+    #         await vehicle.initConnect()
+    #         await vehicle.move_meters(north_distance, east_distance)
+    #     else:
+    #         print("올바른 명령을 입력하세요.")
+    # else:
+    #     print("명령을 입력하세요 (takeoff, land, goto, move_meters).")
 
 if __name__ == '__main__':
     asyncio.run(main())

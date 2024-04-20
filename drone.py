@@ -5,6 +5,7 @@ from multiprocessing import Process
 from dropper import *
 import asyncio
 from vehicle import Vehicle
+# from yoloModule import *
 
 from vehicle_stub import *
 
@@ -17,6 +18,7 @@ class DroneMode:
     공통적으로 드론의 비행을 위한 동작 수행
     GCS의 명령을 rabbitmq로 수신
     arm, 이륙, 이동, 고도변경, 착륙의 동작을 수행함
+    todo
     '''
     
     def __init__(self, parent) -> None:
@@ -35,8 +37,27 @@ class DroneMode:
         self.task_list = []
         self.created_task_list = []
         
+        self.route_record = []
+        
         self.task_list.append(self.processMessage())
-        self.task_list.append(self.checkNetwork())        
+        self.task_list.append(self.checkNetwork())   
+        self.task_list.append(self.updateStatus())    
+        
+    async def updateStatus(self):
+        '''
+        기체의 상태 받아오기
+        '''
+        async for position, battery, velocity in self.vehicle.getLocation():
+            print(position, battery, velocity)
+            # todo : 서버로 전송
+            # routeRecord : 현재의 위치 기록
+            
+    def routeRecord(self, position):
+        '''
+        드론이 진행한 위치를 누적하여 기록
+        '''
+        self.route_record.append(position)
+        
         
     
     async def processMessage(self):
@@ -75,8 +96,7 @@ class DroneMode:
         '''
         async for response in self.networkChecker.ping():
             print(response)
-            
-            
+                 
     async def start_task(self):
         self.created_task_list = []
         for single_task in self.task_list:
@@ -113,6 +133,8 @@ class SeekMode(DroneMode):
     '''
     def __init__(self, parent) -> None:
         super().__init__(parent)
+        
+        # self.yolo_module = FindTree()
         
         self.task_list.append(self.yoloModule())
     
