@@ -16,7 +16,7 @@ class MqReceiverAsync:
     def __init__(self, device_name, server_ip) -> None:
         self.server_ip = server_ip
         self.device_name = device_name
-
+        self.keep_going = True
     async def getMessage(self):
         # RabbitMQ 연결 설정
         connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
@@ -29,10 +29,15 @@ class MqReceiverAsync:
             
             # 메시지 받기
             async for message in queue:
+                if self.keep_going is False:
+                    break
                 async with message.process():
                     # 메시지 처리
                     yield json.loads(message.body.decode())
 
+    async def stop(self):
+        self.keep_going = False
+        
 
 class MqReceiver:
     '''
@@ -199,7 +204,7 @@ class MqSender:
 
         #메시지 송신
         self.channel.basic_publish(exchange=self.exchange_name, routing_key=routing_key, body=message)
-        print(f" Sent message: {message}")
+        print(f" Sent message: {message} to {self.exchange_name}")
         
     def arm(self):
         # todo ... 명령별로 함수 구성 및 파라미터 받도록 해야 함
@@ -273,9 +278,13 @@ def test_sender():
     sender = MqSender('drone1', 'localhost')
 
     time.sleep(1)
-    sender.arm()
-    time.sleep(1)
-    sender.takeoff(30)
+    # sender.arm()
+    # time.sleep(1)
+    # sender.takeoff(30)
+    
+    # time.sleep(1)
+    
+    sender.startDrop(None, None)
     # time.sleep(1)
     # sender.goto(35.1541529, 128.0929031)
     # time.sleep(1)

@@ -9,6 +9,12 @@ from vehicle import Vehicle
 
 from vehicle_stub import *
 
+# 각 모드의 code 정의
+NORMAL_MODE = 1
+SEEK_MODE = 2
+DROP_MODE = 3
+RETURN_MODE = 4
+
 PING_PERIOD = 5
 DRONE_ADDRESS = 'udp://:14540'
 
@@ -39,9 +45,15 @@ class DroneMode:
         
         self.route_record = []
         
+        self.task_halt = False
+        
+        self.cur_start = None
+        
         self.task_list.append(self.processMessage())
-        self.task_list.append(self.checkNetwork())   
-        self.task_list.append(self.updateStatus())    
+        # self.task_list.append(self.checkNetwork())   
+        # self.task_list.append(self.updateStatus())    
+        
+        
         
     async def updateStatus(self):
         '''
@@ -49,6 +61,8 @@ class DroneMode:
         '''
         async for position, battery, velocity in self.vehicle.getLocation():
             print(position, battery, velocity)
+            if self.task_halt:
+                break
             # todo : 서버로 전송
             # routeRecord : 현재의 위치 기록
             
@@ -57,8 +71,6 @@ class DroneMode:
         드론이 진행한 위치를 누적하여 기록
         '''
         self.route_record.append(position)
-        
-        
     
     async def processMessage(self):
         '''
@@ -66,12 +78,12 @@ class DroneMode:
         '''
         print('waiting for message')
         async for single_message in self.receiver.getMessage():
+
             print(single_message)       
-            # print(type(single_message))
             if "type" not in single_message:
                 print("not defined message")
                 continue
-                
+            print(76)
             if single_message["type"] == 'arm':
                 await self.vehicle.arm()
             elif single_message["type"] == 'takeoff':
@@ -88,29 +100,107 @@ class DroneMode:
                 #disarm은 아마 착륙하면 자동으로 될것
                 pass
             elif single_message["type"] == 'startDrop':
-                self.parent.changeMode("Drop")
+                self.changeMode(SEEK_MODE)
+            else:
+                print("undefinded message")
                 
+            print(95)
+            if self.task_halt:
+                print("break message")
+                break
+            
+        print(100) 
+        
     async def checkNetwork(self):
         '''
         서버로 보낸 ping이 돌아오는지 확인
         '''
         async for response in self.networkChecker.ping():
             print(response)
-                 
+            if self.task_halt:
+                break
+          
+    def changeMode(self, new_mode):
+        for single_task in self.created_task_list:
+            self.task_halt = True
+            single_task.cancel()
+            print(57)
+                
+        if new_mode == NORMAL_MODE:
+            self.parent.mode = NormalMode(self.parent)
+        elif new_mode == DROP_MODE:
+            self.parent.mode = DropMode(self.parent)
+        elif new_mode == SEEK_MODE:
+            self.parent.mode = SeekMode(self.parent)
+        elif new_mode == RETURN_MODE:
+            self.parent.mode = ReturnMode(self.parent)
+        else:
+            print("Mode error")
+            self.parent.mode = NormalMode(self.parent)
+            
+        self.cur_start = asyncio.create_task(self.parent.mode.start_task())
+        # self.parent.mode.start()
+               
     async def start_task(self):
         self.created_task_list = []
+        print(111, self.parent.mode)
+        print(147, self.task_list)
+        self.task_halt = False
         for single_task in self.task_list:
-            self.created_task_list = asyncio.create_task(single_task)
+            print(148, single_task)
+            try:
+                self.created_task_list.append(asyncio.create_task(single_task))
+                
+            except ValueError as val_e:
+                print(val_e)
+
+        print(self.created_task_list)
         
-        await asyncio.wait([self.created_task_list])
+        await asyncio.wait(self.created_task_list)
     
     def start(self):
-        asyncio.run(self.start_task())
-    
-    def stop(self):
+        try:
+            print(153)
+            '''
+            현재 실행중인 
+            '''
+            asyncio.run(self.start_task())
+        except ValueError as val_e:
+            print(val_e)
+
+        # loop = asyncio.new_event_loop()
+
+        # asyncio.set_event_loop(loop)
+        # loop.run_until_complete(self.start_task())
+        
+        # loop.create_task(self.start_task())
+        # loop.run_forever()
+        
+        print(121)
+ 
+    async def stop_task(self):
+        print(129)
         for single_task in self.created_task_list:
             single_task.cancel()
-                   
+            
+            try:
+                await single_task
+            except asyncio.CancelledError:
+                print("task canceled")
+
+    def stop(self):
+        print(135)
+        self.task_halt = True
+        for single_task in self.created_task_list:
+            print(150)
+            single_task.cancel()
+        loop = asyncio.get_running_loop()
+        # loop.stop()
+        
+        
+        print(i for i in asyncio.all_tasks(loop=loop))
+        
+        print(140)  
     
     
 class NormalMode(DroneMode):
@@ -119,12 +209,16 @@ class NormalMode(DroneMode):
     '''
     def __init__(self, parent) -> None:
         super().__init__(parent)
-        
+    
+    def __str__(self) -> str:
+         return 'NORMAL_MODE'
+     
     def start(self):
         super().start()
     
     def stop(self):
         super().stop()
+
 
 class SeekMode(DroneMode):
     '''
@@ -138,14 +232,22 @@ class SeekMode(DroneMode):
         
         self.task_list.append(self.yoloModule())
     
-    def yoloModule(self):
-        pass
+    def __str__(self) -> str:
+        return 'SEEK_MODE'
+    
+    async def yoloModule(self):
+        '''
+        테스트 스텁
+        '''
+        while True:
+            await asyncio.sleep(3)
         
     def start(self):
         super().start()
     
     def stop(self):
         super().stop()
+
 
 class DropMode(DroneMode):
     '''
@@ -158,10 +260,14 @@ class DropMode(DroneMode):
         self.dropper = Dropper()
 
     def start(self):
-        pass
+        super().start()
     
     def stop(self):
-        pass
+        super().stop()
+        
+    def __str__(self) -> str:
+        return 'DROP_MODE'
+ 
  
 class ReturnMode(DroneMode):
     '''
@@ -169,20 +275,34 @@ class ReturnMode(DroneMode):
     이전의 위치 기록을 전달받아 해당 기록을 따라 이동
     '''
     def __init__(self, parent) -> None:
-        super().__init__()
+        super().__init__(parent)
 
     def start(self):
-        pass
+        super().start()
     
     def stop(self):
-        pass
+        super().stop()
+        
+    def __str__(self) -> str:
+        return 'RETURN_MODE'
+
+
+class ModeChangeError(Exception):
+    def __init__(self, next_mode) -> None:
+        self.next_mode = next_mode
+        
+    def __str__(self) -> str:
+        return self.next_mode
 
 class Drone:
     def __init__(self, drone_name, server_ip) -> None:
         self.drone_name = drone_name
         self.server_ip = server_ip
         
+        print(drone_name, server_ip)
+        
         self.mode = NormalMode(self) # 초기 모듈
+        
         
     def changeMode(self, mode):
         '''
@@ -193,24 +313,31 @@ class Drone:
         '''
         self.mode.stop(self)
         
+        print(217)
         if mode == "Normal":
             self.mode = NormalMode(self)
+            print("mode Normal")
             
         elif mode == "Seek":
             self.mode = SeekMode(self)
+            print("mode Seek")
         
         elif mode == "Drop":
             self.mode = DropMode(self)
+            print("mode Drop")
             
         elif mode == "Return":
             self.mode = ReturnMode(self)
+            print("mode Return")
         else:
             '''
             mode 전달과정에서 오류 발생시 normal mode로
             변경
             '''
             self.mode = NormalMode(self)
+            print("mode undefined -> normal")
             
+        print(239)
         self.mode.start(self)
     
     def start(self):
@@ -226,5 +353,9 @@ if __name__ == '__main__':
     parser.add_argument('-server', help=' : 서버 주소')
     args = parser.parse_args()  
     
+    
     drone = Drone(args.name, args.server)
     drone.start()
+    
+    
+    
