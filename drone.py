@@ -64,12 +64,55 @@ class DroneMode:
         
     def initTask(self):
                 
-        self.task_list.clear()
-        
-        # self.task_list.append(self.processMessage()) # 메세지 수신 및 드론 동작
+        self.task_list.clear()        
+        self.task_list.append(self.processMessage()) # 메세지 수신 및 드론 동작
         # self.task_list.append(self.checkNetwork())   # 네트워크 연결 확인
-        self.task_list.append(self.updateStatus())    # 기체의 상태 받아옴
+        # self.task_list.append(self.updateStatus())    # 기체의 상태 받아옴
+   
+    async def processMessage(self):
+        '''
+        receiver에서 메세지를 받아 해석 후 명령 수행
+        '''
+        print('waiting for message')
         
+        async for single_message in self.receiver.getMessage():
+            
+            # print(single_message)       
+            if "type" not in single_message:
+                print("not defined message")
+                continue
+            # print(76)
+            cond = asyncio.Condition()
+            await cond.acquire()
+            
+            if single_message["type"] == 'arm':
+                await self.vehicle.arm()
+            elif single_message["type"] == 'takeoff':
+                await self.vehicle.takeoff()
+            elif single_message["type"] == 'goto':
+                await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
+            elif single_message["type"] == 'setElev':
+                await self.vehicle.setElev(single_message['altitude'])
+            elif single_message["type"] == 'wait':
+                await self.vehicle.wait(single_message['time'])
+            elif single_message["type"] == 'land':
+                await self.vehicle.land()
+            elif single_message["type"] == 'disarm':
+                #disarm은 아마 착륙하면 자동으로 될것
+                pass
+            elif single_message["type"] == 'startDrop':
+                await self.changeMode(SEEK_MODE)
+            else:
+                print("undefinded message")
+                
+            # print(95)
+            if self.task_halt:
+                print("break message")
+                break
+            await cond.release()
+            
+        # print(100) 
+     
     async def updateStatus(self):
         '''
         기체의 상태 받아오기, 현재의 상태 저장과, 상태 전송에 사용됨
@@ -127,46 +170,6 @@ class DroneMode:
             }
         }
         await self.sender.send_message(data, "SERVER")
-    
-    async def processMessage(self):
-        '''
-        receiver에서 메세지를 받아 해석 후 명령 수행
-        '''
-        print('waiting for message')
-
-        async for single_message in self.receiver.getMessage():
-
-            # print(single_message)       
-            if "type" not in single_message:
-                print("not defined message")
-                continue
-            # print(76)
-            if single_message["type"] == 'arm':
-                await self.vehicle.arm()
-            elif single_message["type"] == 'takeoff':
-                await self.vehicle.takeoff()
-            elif single_message["type"] == 'goto':
-                await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
-            elif single_message["type"] == 'setElev':
-                await self.vehicle.setElev(single_message['altitude'])
-            elif single_message["type"] == 'wait':
-                await self.vehicle.wait(single_message['time'])
-            elif single_message["type"] == 'land':
-                await self.vehicle.land(single_message['time'])
-            elif single_message["type"] == 'disarm':
-                #disarm은 아마 착륙하면 자동으로 될것
-                pass
-            elif single_message["type"] == 'startDrop':
-                await self.changeMode(SEEK_MODE)
-            else:
-                print("undefinded message")
-                
-            # print(95)
-            if self.task_halt:
-                print("break message")
-                break
-            
-        # print(100) 
         
     async def checkNetwork(self):
         '''
@@ -317,10 +320,10 @@ class NormalMode(DroneMode):
     def __str__(self) -> str:
         return 'NORMAL_MODE'
      
-    def start(self):
-        super().start()
+    async def start(self):
+        await super().start_task()
     
-    def stop(self):
+    async def stop(self):
         super().stop()
 
 
@@ -374,10 +377,10 @@ class SeekMode(DroneMode):
             
             await asyncio.sleep(3)
         
-    def start(self):
-        super().start()
+    async def start(self):
+        await super().start_task()
     
-    def stop(self):
+    async def stop(self):
         super().stop()
         
     def convertPixelToMeters(self, pixel_width_dis, pixel_height_dis, lidar_dis):
@@ -407,10 +410,10 @@ class DropMode(DroneMode):
         self.dropper = Dropper__STUB()
         self.lidar_module = LidarModule()
 
-    def start(self):
-        super().start()
+    async def start(self):
+        await super().start_task()
     
-    def stop(self):
+    async def stop(self):
         super().stop()
         
     def __str__(self) -> str:
@@ -453,10 +456,10 @@ class ReturnMode(DroneMode):
         # loop 문 탈출한 경우에는 집 못찾은 것이므로 안전 고도로 상승하여
         # GCS 위치로 복귀함
 
-    def start(self):
-        super().start()
+    async def start(self):
+        await super().start_task()
     
-    def stop(self):
+    async def stop(self):
         super().stop()
         
     def __str__(self) -> str:
@@ -471,11 +474,11 @@ class Drone:
         
         self.mode = NormalMode(self) # 초기 모듈
         
-    def start(self):
-        self.mode.start()
+    async def start(self):
+        await self.mode.start()
         
-    def stop(self):
-        self.mode.stop()
+    async def stop(self):
+        await self.mode.stop()
         
         
 if __name__ == '__main__':
@@ -484,9 +487,10 @@ if __name__ == '__main__':
     parser.add_argument('-server', help=' : 서버 주소')
     args = parser.parse_args()  
     
-    
-    drone = Drone(args.name, args.server)
-    drone.start()
-    
+    async def main():
+        drone = Drone(args.name, args.server)
+        await drone.start()
+        
+    asyncio.run(main())
     
     

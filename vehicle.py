@@ -20,6 +20,7 @@ class Vehicle:
         self.system_address = system_address
         self.takeoff_altitude = None
         self.drone_system = None  # drone_system 속성 초기화
+        asyncio.create_task(self.initConnect())
         
     async def getLocation(self):
         '''
@@ -40,7 +41,7 @@ class Vehicle:
             
             yield velocity, battery, position    
             
-        await asyncio.sleep(LOCATION_BEACON_PERIOD)
+            await asyncio.sleep(LOCATION_BEACON_PERIOD)
             
     async def initConnect(self):
         self.drone_system = System()
@@ -59,11 +60,11 @@ class Vehicle:
                 break
 
     async def arm(self):
-        await self.initConnect()
+        # await self.initConnect()
         await self.drone_system.action.arm()  # 드론 연결
 
     async def takeoff(self):
-        await self.initConnect()
+        # await self.initConnect()
         print("-- 이륙 중")
         if self.takeoff_altitude != None:
             pass
@@ -76,7 +77,7 @@ class Vehicle:
         output : 이동 결과
         '''
         
-        await self.initConnect()
+        # await self.initConnect()
         # 목표 위치 설정
         self.target_position = (target_lat, target_lon, target_alt)
 
@@ -124,7 +125,7 @@ class Vehicle:
     async def move_meters(self, north_distance, east_distance):
         original_position = None
         
-        await self.initConnect()  # 드론 연결 및 초기화
+        # await self.initConnect()  # 드론 연결 및 초기화
         
         # 현재 위치를 가져오는 코드
         async for position in self.drone_system.telemetry.position():
@@ -157,17 +158,17 @@ class Vehicle:
 
     async def setElev(self, altitude):
         print(f"고도 변경 중: {altitude}")
-        await self.initConnect()
+        # await self.initConnect()
         await self.drone_system.setElev(altitude) 
         
     async def wait(self, time):
         print(f"{time}초 대기 중")
-        await self.initConnect()
+        # await self.initConnect()
         await self.drone_system.action.hold(time)
 
     async def land(self):
         print("-- 착륙 중")
-        await self.initConnect()
+        # await self.initConnect()
         self.takeoff_altitude = None
         await self.drone_system.action.land()  # 드론 착륙
 
