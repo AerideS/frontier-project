@@ -1,8 +1,10 @@
 # app.py
 from flask import Flask, request, render_template
+from flask_cors import CORS
 
 #Flask 객체 인스턴스 생성
 app = Flask(__name__)
+CORS(app)
 
 @app.route('/', methods=['GET', 'POST']) # 접속하는 url
 def index():
@@ -23,6 +25,10 @@ def service():
     new_point = data.get('newPoint')
     print('수신된 newPoint:', new_point)
     return render_template('service.html') 
+    
+@app.route('/poc', methods=['GET', 'POST'])
+def poc():
+  return render_template('poc_realtime_position.html')
 
 if __name__=="__main__":
   app.run(host="0.0.0.0", port="5000", debug=True)
