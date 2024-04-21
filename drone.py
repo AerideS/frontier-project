@@ -2,13 +2,13 @@ import mqapi
 import argparse
 from networkChecker import networkChecker
 from multiprocessing import Process
-from dropper import *
 import asyncio
 from vehicle import Vehicle
 # from yoloModule import * 
 from vehicle_stub import *
 from datetime import datetime
-from lidar import * # todo : 각 하드웨어에 대해 별도로 import 하지 않고 하나로 합칠수도 있을 듯
+from hardware import * # todo : 각 하드웨어에 대해 별도로 import 하지 않고 하나로 합칠수도 있을 듯
+from math import tan
 
 # 각 모드의 code 정의
 NORMAL_MODE = 1
@@ -63,8 +63,8 @@ class DroneMode:
         self.initTask()
         
     def initTask(self):
-        
-        self.task_list = []
+                
+        self.task_list.clear()
         
         # self.task_list.append(self.processMessage()) # 메세지 수신 및 드론 동작
         # self.task_list.append(self.checkNetwork())   # 네트워크 연결 확인
@@ -75,25 +75,28 @@ class DroneMode:
         기체의 상태 받아오기, 현재의 상태 저장과, 상태 전송에 사용됨
         '''
         async for velocity, battery, position in self.vehicle.getLocation():
+            print(78)
             print(velocity, battery, position, sep='\n')
+            print(80)
             if self.task_halt:
                 break
-            
+            print(83)
+            self.recordRoute(position)
+            print(85)
             await self.sendStatus(velocity, battery, position)
-            await self.recordRoute(position)
+            print(87)
             
-
-    async def recordRoute(self, position):
+    def recordRoute(self, position):
         '''
         드론의 현재 이동 위치를 저장
         '''
         
         single_data = {
-            "time" : datetime.timestamp(),
-            "latitude_deg" : position['latitude_deg'],
-            "longitude_deg" : position['longitude_deg'],
-            "absolute_altitude_m" : position['absolute_altitude_m'],
-            "relative_altitude_m" : position['relative_altitude_m']
+            "time" : datetime.now().timestamp(),
+            "latitude_deg" : position.latitude_deg,
+            "longitude_deg" : position.longitude_deg,
+            "absolute_altitude_m" : position.absolute_altitude_m,
+            "relative_altitude_m" : position.relative_altitude_m
         }
         
         self.route_record.append(single_data)
@@ -104,34 +107,33 @@ class DroneMode:
         현재 시간, 장치명, 위치, 속도, 배터리 정보에 관한 정보 전송
         '''
         data =  {
-            "time" : datetime.timestamp(),
+            "time" : datetime.now().timestamp(),
             "device" : self.parent.drone_name,
             "position" : {
-                "latitude_deg" : position['latitude_deg'],
-                "longitude_deg" : position['longitude_deg'],
-                "absolute_altitude_m" : position['absolute_altitude_m'],
-                "relative_altitude_m" : position['relative_altitude_m']
+                "latitude_deg" : position.latitude_deg,
+                "longitude_deg" : position.longitude_deg,
+                "absolute_altitude_m" : position.absolute_altitude_m,
+                "relative_altitude_m" : position.relative_altitude_m
             },
             "velocity" : {
-                "north_m_s" : velocity['north_m_s'],
-                "east_m_s" : velocity['east_m_s'],
-                "down_m_s" : velocity['down_m_s']
+                "north_m_s" : velocity.north_m_s,
+                "east_m_s" : velocity.east_m_s,
+                "down_m_s" : velocity.down_m_s
             },
             "battery" : {
-                "voltage_v" : battery['voltage_v'],
-                "current_battery_a" : battery['current_battery_a'],
-                "remaining_percent" : battery['remaining_percent']
+                "voltage_v" : battery.voltage_v,
+                "current_battery_a" : battery.current_battery_a,
+                "remaining_percent" : battery.remaining_percent
             }
         }
-        
-        self.sender.send_message(data, "SERVER")
+        await self.sender.send_message(data, "SERVER")
     
     async def processMessage(self):
         '''
         receiver에서 메세지를 받아 해석 후 명령 수행
         '''
-        # print('waiting for message')
-        
+        print('waiting for message')
+
         async for single_message in self.receiver.getMessage():
 
             # print(single_message)       
@@ -182,6 +184,13 @@ class DroneMode:
             # print(response)
             if self.task_halt:
                 break
+            
+            if self.parent.mode == "RETURN_MODE":
+                if response == True:
+                    self.changeMode(self.prev_mode)
+            else:
+                if response == False:
+                    self.changeMode(RETURN_MODE)
           
     async def changeMode(self, new_mode):
         '''
@@ -205,7 +214,7 @@ class DroneMode:
         elif new_mode == SEEK_MODE:
             self.parent.mode = SeekMode(self.parent)
         elif new_mode == RETURN_MODE:
-            self.parent.mode = ReturnMode(self.parent)
+            self.parent.mode = ReturnMode(self.parent, self.parent.mode)
         else:
             # print("Mode error")
             self.parent.mode = NormalMode(self.parent)
@@ -232,21 +241,24 @@ class DroneMode:
             self.task_halt = False
             # print(self.task_list)
             
-            loop = asyncio.get_running_loop()        
+            # loop = asyncio.get_running_loop()        
             
             # print(i for i in asyncio.all_tasks(loop=loop))
-            
+            # print(self.task_list)
+            # print(self.created_task_list)
             for single_task in self.task_list:
-                # print(148, single_task)
+                print(148, single_task)
                 try:
                     single_created_task = asyncio.create_task(single_task)
-                    # print(170, type(single_created_task))
+                    print(170, type(single_created_task))
                     self.created_task_list.append(single_created_task)
                     
                 except ValueError as val_e:
                     print(val_e)
-            
-            await asyncio.wait(self.created_task_list)
+            try:
+                await asyncio.wait(self.created_task_list)
+            except KeyboardInterrupt:
+                await self.stop_task()
             # print(self.created_task_list)
             # print(158)
             # print('all task : ', end =' ')
@@ -258,15 +270,12 @@ class DroneMode:
         start_task를 위한 동작 
         '''
         try:
-            # print(153)
-            asyncio.get_event_loop().run_until_complete(self.start_task())
-            # asyncio.run(self.start_task())
+            # asyncio.get_event_loop().run_until_complete(self.start_task())
+            asyncio.run(self.start_task())
         except ValueError as val_e:
             # 현재 실행중인 함수 목록이 없을 경우 처리
             print(val_e)
         
-        print(121)
- 
     async def stop_task(self):
         '''
         mode 변환 등을 위해 수행중인 task를 종료함
@@ -319,24 +328,50 @@ class SeekMode(DroneMode):
     '''
     수목 탐색 모드, 카메라 사용 및 yolo 모듈 동작
     드론 이동시 위도, 경도 기반이 아닌 위치 기반 이동 고려중
+    
+    1. 이미지를 받는다
+        카메라 센서 -> 드론 하부 촬영 이미지
+    2. 이미지에서 수목 위치를 추출한다
+        드론 촬영 이미지 -> 수목 위치까지의 가로, 세로 픽셀 (가로, 세로)
+        픽셀이 없을 경우 -> 주변 탐색 : todo
+    3. 픽셀을 미터로 변환한다
+        수목 위치까지의 가로, 세로 픽셀 -> 해당 지점까지의 거리
     '''
     def __init__(self, parent) -> None:
         super().__init__(parent)
         
         # self.yolo_module = FindTree()
-        self.lidar_module = LidarModule__STUB()
-        
+        self.cam_module = RaspiCAM__STUB() # 카메라 모듈 스텁
+        self.yolo_module = FindTree__STUB() # yolov5 모듈 스텁
+        self.lidar_module = LidarModule__STUB() # 라이다 모듈 스텁
+                
         self.task_list.append(self.yoloModule())
+        
+        self.CAM_ANGLE = 63/2 # 라즈베리파이 캠의 화각
+        self.CAM_WIDTH_PIXEL = 640
+        self.CAM_HEIGHT_PIXEL = 480
     
     def __str__(self) -> str:
         return 'SEEK_MODE'
     
     async def yoloModule(self):
         '''
-        테스트 스텁
+        1. 사진 받는다
+        2. 객체 확인한다
+        3. 이동한다
+        4. 모드 변경한다
         '''
-        while True:
-            # print('yolo Module')
+        while True: # 카운트 세다가 없으면 넘어가기?
+            this_pic = self.cam_module.getPicture() # 사진 받아옴
+            process_result = self.yolo_module.find_tree_coordinate(this_pic)
+            if process_result is None:
+                pass # 결과가 없을 경우 이동하고 다시
+            else:
+                x_dis, y_dis = process_result
+                await self.vehicle.move_meters(x_dis, y_dis)
+                self.changeMode(DROP_MODE)
+                break
+            
             await asyncio.sleep(3)
         
     def start(self):
@@ -344,7 +379,22 @@ class SeekMode(DroneMode):
     
     def stop(self):
         super().stop()
-
+        
+    def convertPixelToMeters(self, pixel_width_dis, pixel_height_dis, lidar_dis):
+        '''
+        pixel_width_dis     : 픽셀 가로 길이
+        pixel_height_dis    : 픽셀 세로 길이
+        lidar_dis           : 라이다 측정 수목간 차이
+        '''
+        
+        absolute_whole_width = 2* lidar_dis * math.tan(self.CAM_ANGLE)
+        
+        conversion_factor = absolute_whole_width / self.CAM_WIDTH_PIXEL
+        
+        x_dist = conversion_factor * pixel_width_dis
+        y_dist = conversion_factor * pixel_height_dis
+        
+        return (x_dist, y_dist)
 
 class DropMode(DroneMode):
     '''
@@ -354,7 +404,8 @@ class DropMode(DroneMode):
     def __init__(self, parent) -> None:
         super().__init__(parent)
         
-        self.dropper = Dropper()
+        self.dropper = Dropper__STUB()
+        self.lidar_module = LidarModule()
 
     def start(self):
         super().start()
@@ -364,6 +415,17 @@ class DropMode(DroneMode):
         
     def __str__(self) -> str:
         return 'DROP_MODE'
+    
+    async def dropRepeater(self):
+        '''
+        todo : 지금 위치를 전달받아야 할까?
+        '''
+        
+        height = await self.lidar_module.getAltidude()
+        
+        await self.dropper.drop(height)
+        
+        self.changeMode(NORMAL_MODE)
  
  
 class ReturnMode(DroneMode):
@@ -373,6 +435,23 @@ class ReturnMode(DroneMode):
     '''
     def __init__(self, parent) -> None:
         super().__init__(parent)
+        self.prev_mode = None
+        
+        self.task_list.append(self.traceBack)()
+        
+        
+    async def traceBack(self):
+        '''
+        이동 기록을 따라 이전 지점으로 이동해 나가는 것
+        네트워크 복귀할때 까지
+        '''
+        # todo 네트워크 복귀 후 지점 전송
+        for single_point in self.route_record:
+            lat, lon, alt = single_point
+            self.vehicle.goto(lat, lon, alt)
+            
+        # loop 문 탈출한 경우에는 집 못찾은 것이므로 안전 고도로 상승하여
+        # GCS 위치로 복귀함
 
     def start(self):
         super().start()

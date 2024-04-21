@@ -20,22 +20,27 @@ class MqReceiverAsync:
         
     async def getMessage(self):
         # RabbitMQ 연결 설정
-        connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
-        async with connection:
-            # 채널 열기
-            channel = await connection.channel()
+        try:
+            connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
+            async with connection:
+                # 채널 열기
+                channel = await connection.channel()
+                
+                # 큐 선언
+                queue = await channel.declare_queue(name=self.device_name, durable=True)
+                
+                # 메시지 받기
+                async for message in queue:
+                    if self._keep_going is False:
+                        break
+                    async with message.process():
+                        # 메시지 처리
+                        yield json.loads(message.body.decode())
+                        
+        finally:
+            connection.close()
             
-            # 큐 선언
-            queue = await channel.declare_queue(name=self.device_name, durable=True)
             
-            # 메시지 받기
-            async for message in queue:
-                if self._keep_going is False:
-                    break
-                async with message.process():
-                    # 메시지 처리
-                    yield json.loads(message.body.decode())
-
     async def stop(self):
         self._keep_going = False
         
@@ -43,7 +48,8 @@ class MqSenderAsync:
     def __init__(self, server_ip) -> None:
         self.server_ip = server_ip
         self._keep_going = True
-    
+        print('------------',self.server_ip, self._keep_going)
+        
     async def send_message(self, message, target):
         # RabbitMQ 서버에 연결
         connection = await aio_pika.connect_robust(
@@ -56,22 +62,24 @@ class MqSenderAsync:
             async with connection:
                 # 채널에서 메시지를 보낼 큐 생성
                 channel = await connection.channel()
+                print(target)
+                queue = await channel.declare_queue(name=target, durable=True)
 
-                queue = await channel.declare_queue(name=self.device_name, durable=True)
-
-                message_body = message
+                message_body = json.dumps(message)
 
                 await channel.default_exchange.publish(
                     aio_pika.Message(body=message_body.encode()),  
                     routing_key=queue.name 
                 )
-                print("Message sent:", message_body, 'to', self.device_name)
+                print("Message sent:", message_body, 'to', target)
 
         finally:
             # 연결 종료
             await connection.close()
     
-
+    # async def close(self):
+    #     await self.connection.close()
+    
 class MqReceiver:
     '''
         #[요구사항]
@@ -308,16 +316,16 @@ def test_receiver():
     receiver.start()
 
 def test_sender():
-    sender = MqSender('drone1', 'localhost')
-
+    # sender = MqSender('drone1', 'localhost')
+    sender = MqSenderAsync('localhost')
     time.sleep(1)
     # sender.arm()
     # time.sleep(1)
     # sender.takeoff(30)
     
     # time.sleep(1)
-    
-    sender.startDrop(None, None)
+    asyncio.run(sender.send_message(1111, "SERVER"))
+    # sender.startDrop(None, None)
     # time.sleep(1)
     # sender.goto(35.1541529, 128.0929031)
     # time.sleep(1)
@@ -334,7 +342,7 @@ def test_sender():
     # sender.send_message('mistake', 'I am mistake')
 
     # 연결 종료
-    sender.connection.close()
+    # sender.connection.close()
 
 if __name__ == '__main__':
     # 테스트 수행
