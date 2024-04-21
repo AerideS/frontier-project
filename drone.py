@@ -25,46 +25,54 @@ class DroneMode:
     공통적으로 드론의 비행을 위한 동작 수행
     GCS의 명령을 rabbitmq로 수신
     arm, 이륙, 이동, 고도변경, 착륙의 동작을 수행함
-    todo
+    todo : 비행 종료 후 동작 정의 필요
     '''
     
     def __init__(self, parent) -> None:
-        '''
-        todo : 실행 주체에 따라 객체를 parent에 할당할지, self에 할당할지 결정 필요
-        '''
-        self.parent = parent
+
+        # drone
+        self.parent = parent 
         
+        # rabbitmq message receiver
         self.receiver = mqapi.MqReceiverAsync(parent.drone_name, parent.server_ip)
         
+        # rabbitmq message sender
         self.sender = mqapi.MqSenderAsync(parent.server_ip)
         
+        # mavsdk Drone actuator
         self.vehicle = Vehicle(DRONE_ADDRESS)
         # self.vehicle = Vehicle_Stub(DRONE_ADDRESS)
         
+        # ping to server - network checker
         self.networkChecker = networkChecker(parent.server_ip, PING_PERIOD)     
         
+        # 현재 모드가 수행할 함수, task의 목록 및 생성된 task의 목록
         self.task_list = []
         self.created_task_list = []
         
+        # 네트워크 단절에 따른 네트워크 복귀를 위한 드론 이동 경로 
         self.route_record = []
         
+        # 모드 변경을 위해 기존에 동작중인 task를 중지하기 위함, 실제로 동작하는 지는 확인 필요
         self.task_halt = False
         
+        # start -> start_task를 통해 각 task가 실행될 때, start_task를 저장함
         self.cur_start = None
         
+        #현재 모드에서 실행될 task를 목록에 추가함
         self.initTask()
         
     def initTask(self):
         
         self.task_list = []
         
-        # self.task_list.append(self.processMessage()) 
-        # self.task_list.append(self.checkNetwork())   
-        self.task_list.append(self.updateStatus())    
+        # self.task_list.append(self.processMessage()) # 메세지 수신 및 드론 동작
+        # self.task_list.append(self.checkNetwork())   # 네트워크 연결 확인
+        self.task_list.append(self.updateStatus())    # 기체의 상태 받아옴
         
     async def updateStatus(self):
         '''
-        기체의 상태 받아오기
+        기체의 상태 받아오기, 현재의 상태 저장과, 상태 전송에 사용됨
         '''
         async for velocity, battery, position in self.vehicle.getLocation():
             print(velocity, battery, position, sep='\n')
@@ -87,15 +95,17 @@ class DroneMode:
             "absolute_altitude_m" : position['absolute_altitude_m'],
             "relative_altitude_m" : position['relative_altitude_m']
         }
+        
         self.route_record.append(single_data)
     
     async def sendStatus(self, velocity, battery, position):
         '''
         드론의 현재 상태를 서버로 전송
+        현재 시간, 장치명, 위치, 속도, 배터리 정보에 관한 정보 전송
         '''
         data =  {
             "time" : datetime.timestamp(),
-            "deveice" : self.parent.drone_name,
+            "device" : self.parent.drone_name,
             "position" : {
                 "latitude_deg" : position['latitude_deg'],
                 "longitude_deg" : position['longitude_deg'],
@@ -116,12 +126,6 @@ class DroneMode:
         
         self.sender.send_message(data, "SERVER")
     
-    def routeRecord(self, position):
-        '''
-        드론이 진행한 위치를 누적하여 기록
-        '''
-        self.route_record.append(position)
-    
     async def processMessage(self):
         '''
         receiver에서 메세지를 받아 해석 후 명령 수행
@@ -132,7 +136,7 @@ class DroneMode:
 
             # print(single_message)       
             if "type" not in single_message:
-                # print("not defined message")
+                print("not defined message")
                 continue
             # print(76)
             if single_message["type"] == 'arm':
@@ -157,7 +161,7 @@ class DroneMode:
                 
             # print(95)
             if self.task_halt:
-                # print("break message")
+                print("break message")
                 break
             
         # print(100) 
@@ -165,6 +169,14 @@ class DroneMode:
     async def checkNetwork(self):
         '''
         서버로 보낸 ping이 돌아오는지 확인
+        todo
+        현재가 return mode가 아닐경우
+            네트워크 연결이 확인됨 : 정상 동작
+            네트워크 연결이 확인되지 않음 : 현재 task를 종료하고 return mode로,
+            
+        현재가 return mode일 경우
+            네트워크 연결이 확인됨 : 현재 task를 종료하고 기존 실행 모드로 
+            네트워크 연결이 확인되지 않음 : 현재 task 지속 수행
         '''
         async for response in self.networkChecker.ping():
             # print(response)
@@ -172,6 +184,10 @@ class DroneMode:
                 break
           
     async def changeMode(self, new_mode):
+        '''
+        모드 변경
+        기존 수행중인 task를 종료하고 새로운 객체 생성 후 실행
+        '''
         # print('all task : ', end =' ')
         # print(task for task in asyncio.all_tasks())
         for single_task in self.created_task_list:
@@ -200,6 +216,11 @@ class DroneMode:
         await self.parent.mode.start_task()       
                
     async def start_task(self):
+        '''
+        todo : 착륙시, 미션 종료시 아래의 loop 탈출 필요
+        주요 기능 동작을 위함
+        현재 mode에 맞는 task를 생성하고 실행
+        '''
         while True:
             self.initTask()
             self.created_task_list.clear()
@@ -233,6 +254,9 @@ class DroneMode:
         
     
     def start(self):
+        '''
+        start_task를 위한 동작 
+        '''
         try:
             # print(153)
             asyncio.get_event_loop().run_until_complete(self.start_task())
@@ -244,6 +268,10 @@ class DroneMode:
         print(121)
  
     async def stop_task(self):
+        '''
+        mode 변환 등을 위해 수행중인 task를 종료함
+        사용되지 않음
+        '''
         # print(129)
         for single_task in self.created_task_list:
             single_task.cancel()
@@ -254,6 +282,10 @@ class DroneMode:
                 print("task canceled")
 
     def stop(self):
+        '''
+        mode 변환 등을 위해 수행중인 task를 종료함
+        사용되지 않음
+        '''
         # print(135)
         self.task_halt = True
         for single_task in self.created_task_list:
@@ -351,14 +383,6 @@ class ReturnMode(DroneMode):
     def __str__(self) -> str:
         return 'RETURN_MODE'
 
-
-class ModeChangeError(Exception):
-    def __init__(self, next_mode) -> None:
-        self.next_mode = next_mode
-        
-    def __str__(self) -> str:
-        return self.next_mode
-
 class Drone:
     def __init__(self, drone_name, server_ip) -> None:
         self.drone_name = drone_name
@@ -368,43 +392,6 @@ class Drone:
         
         self.mode = NormalMode(self) # 초기 모듈
         
-        
-    def changeMode(self, mode):
-        '''
-        모드 변경을 위함
-        기존 동작중인 모드를 정지하고
-        mode값에 해당하는 모드로 변경한 후
-        해당 모드 실행
-        '''
-        self.mode.stop(self)
-        
-        # print(217)
-        if mode == "Normal":
-            self.mode = NormalMode(self)
-            # print("mode Normal")
-            
-        elif mode == "Seek":
-            self.mode = SeekMode(self)
-            # print("mode Seek")
-        
-        elif mode == "Drop":
-            self.mode = DropMode(self)
-            # print("mode Drop")
-            
-        elif mode == "Return":
-            self.mode = ReturnMode(self)
-            # print("mode Return")
-        else:
-            '''
-            mode 전달과정에서 오류 발생시 normal mode로
-            변경
-            '''
-            self.mode = NormalMode(self)
-            # print("mode undefined -> normal")
-            
-        # print(239)
-        self.mode.start(self)
-    
     def start(self):
         self.mode.start()
         
