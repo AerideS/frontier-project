@@ -16,7 +16,8 @@ class MqReceiverAsync:
     def __init__(self, device_name, server_ip) -> None:
         self.server_ip = server_ip
         self.device_name = device_name
-        self.keep_going = True
+        self._keep_going = True
+        
     async def getMessage(self):
         # RabbitMQ 연결 설정
         connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
@@ -29,15 +30,47 @@ class MqReceiverAsync:
             
             # 메시지 받기
             async for message in queue:
-                if self.keep_going is False:
+                if self._keep_going is False:
                     break
                 async with message.process():
                     # 메시지 처리
                     yield json.loads(message.body.decode())
 
     async def stop(self):
-        self.keep_going = False
+        self._keep_going = False
         
+class MqSenderAsync:
+    def __init__(self, server_ip) -> None:
+        self.server_ip = server_ip
+        self._keep_going = True
+    
+    async def send_message(self, message, target):
+        # RabbitMQ 서버에 연결
+        connection = await aio_pika.connect_robust(
+            f"amqp://guest:guest@{self.server_ip}/",  # RabbitMQ 서버 주소 및 계정 정보
+            loop=asyncio.get_event_loop()
+        )
+
+        try:
+            # 연결된 채널 생성
+            async with connection:
+                # 채널에서 메시지를 보낼 큐 생성
+                channel = await connection.channel()
+
+                queue = await channel.declare_queue(name=self.device_name, durable=True)
+
+                message_body = message
+
+                await channel.default_exchange.publish(
+                    aio_pika.Message(body=message_body.encode()),  
+                    routing_key=queue.name 
+                )
+                print("Message sent:", message_body, 'to', self.device_name)
+
+        finally:
+            # 연결 종료
+            await connection.close()
+    
 
 class MqReceiver:
     '''

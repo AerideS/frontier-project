@@ -2,6 +2,13 @@ import Jetson.GPIO as GPIO
 import time
 import math
 
+'''
+todo : 사실 메인 함수 이거 하나만 있으면 된다...
+input : 중계기 투하 높이
+output : 서모보터로의 pwm 신호 내보냄
+
+'''
+
 class MotorController:
     '''
         [요구사항]
