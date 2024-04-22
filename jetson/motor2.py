@@ -23,7 +23,7 @@ class MotorController:
             duty cycle 7.5%일 때 정지상태
             duty cycle 7.5~12% : 반시계방향 (10%일 때 high 신호가 2ms)
 
-            duty cycle percent | RPM
+            duty cycle percent | RPM(-는 반시계 방향 의미함)
                     3           100.1
                     4           95.8
                     5           82.3
