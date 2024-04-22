@@ -1,7 +1,7 @@
 import asyncio
 import math
 import sys
-from mavsdk import System
+from mavsdk import System, telemetry
 from math import cos, radians, sqrt
 
 # 최소 안전 거리 (미터)
@@ -22,6 +22,20 @@ class Vehicle:
         self.drone_system = None  # drone_system 속성 초기화
         asyncio.create_task(self.initConnect())
         
+    async def waitForHold(self):
+        '''
+        드론의 현재 비행 상태를 받아옴
+        '''
+        async for mode in self.drone_system.telemetry.flight_mode():
+            print(mode)
+            
+            # print(type(mode))
+            if mode == telemetry.FlightMode.HOLD:
+                '''
+                이전 동작을 완료한 경우 break
+                '''
+                break
+    
     async def getLocation(self):
         '''
         현재 위치 종합하여 반환
@@ -70,6 +84,7 @@ class Vehicle:
             pass
         # self.takeoff_altitude = self.drone_system.action.get_takeoff_altitude()
         await self.drone_system.action.takeoff()  # 드론 이륙
+        print('--takeoff complete')
 
     async def goto(self, target_lat, target_lon, target_alt):
         '''
@@ -164,14 +179,17 @@ class Vehicle:
     async def wait(self, time):
         print(f"{time}초 대기 중")
         # await self.initConnect()
-        await self.drone_system.action.hold(time)
+        await self.drone_system.action.hold() # 매개변수 개수 틀림
+        await asyncio.sleep(time)
 
     async def land(self):
-        print("-- 착륙 중")
+        print("-- 착륙 중")     
         # await self.initConnect()
         self.takeoff_altitude = None
+        print(189)
         await self.drone_system.action.land()  # 드론 착륙
-
+        print(191)
+        
     async def disarm(self):
         # disarm은 착륙 후 자동으로 될 것이므로 pass
         pass

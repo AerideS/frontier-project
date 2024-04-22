@@ -36,9 +36,11 @@ class MqReceiverAsync:
                     async with message.process():
                         # 메시지 처리
                         yield json.loads(message.body.decode())
+        except Exception as excpt:
+            print(excpt)
                         
         finally:
-            connection.close()
+            await connection.close()
             
             
     async def stop(self):
@@ -136,10 +138,11 @@ class MqReceiver:
 
         
     def callback(self, ch, method, properties, body):
+        print('callback')
         #byte -> dictionary 변환
         decoded_body = body.decode('utf-8')
         dictionary_body = json.loads(decoded_body)
-
+        print(dictionary_body)
         #라우팅 키 
         routing_key = method.routing_key
 
@@ -181,7 +184,7 @@ class MqReceiver:
     def start(self):
         # 메시지 수신
         self.channel.basic_consume(queue=self.exchange_name, on_message_callback=self.callback, auto_ack=True)
-
+        print(187)
         # 메시지 처리 시작
         self.channel.start_consuming()
         
@@ -318,19 +321,21 @@ def test_receiver():
 def test_sender():
     sender = MqSender('drone1', 'localhost')
     # sender = MqSender('localhost')
-    time.sleep(1)
+    # time.sleep(5)
     sender.arm()
-    # time.sleep(1)
+
+    # time.sleep(5)
+    # sender.wait(1)
     sender.takeoff(30)
-    
-    # time.sleep(1)
-    # asyncio.run(sender.send_message(1111, "SERVER"))
+    sender.wait(5)
+    # # time.sleep(10)
+    # # asyncio.run(sender.send_message(1111, "SERVER"))
     # sender.startDrop(None, None)
-    # time.sleep(1)
+    # # time.sleep(1)
     # sender.goto(35.1541529, 128.0929031)
-    # time.sleep(1)
+    # # time.sleep(1)
     # sender.setElev(50)
-    # time.sleep(1)
+    # # time.sleep(1)
     # sender.wait(60)
     # time.sleep(1)
     sender.land()
@@ -349,8 +354,8 @@ if __name__ == '__main__':
     TEST = 1
     if TEST == 1:
         # test_sender_receiver 함수를 쓰레드로 실행
-        # threading.Thread(target=test_receiver).start()
+        threading.Thread(target=test_receiver).start()
         threading.Thread(target=test_sender).start()
     else:
-        receiver = MqReceiver('test_queue', 'localhost')
+        receiver = MqReceiver('drone1', 'localhost')
         receiver.start()

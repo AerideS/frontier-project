@@ -60,7 +60,6 @@ class DroneMode:
         self.cur_start = None
         
         #현재 모드에서 실행될 task를 목록에 추가함
-        self.initTask()
         
     def initTask(self):
                 
@@ -74,17 +73,16 @@ class DroneMode:
         receiver에서 메세지를 받아 해석 후 명령 수행
         '''
         print('waiting for message')
-        
+        # semaphore = asyncio.Semaphore(1)  # 세마포어 생성
+        print(77)
         async for single_message in self.receiver.getMessage():
-            
-            # print(single_message)       
+            print(79)
+            await self.vehicle.waitForHold()
             if "type" not in single_message:
                 print("not defined message")
                 continue
-            # print(76)
-            cond = asyncio.Condition()
-            await cond.acquire()
-            
+            print(76)
+            print(single_message["type"])
             if single_message["type"] == 'arm':
                 await self.vehicle.arm()
             elif single_message["type"] == 'takeoff':
@@ -98,20 +96,17 @@ class DroneMode:
             elif single_message["type"] == 'land':
                 await self.vehicle.land()
             elif single_message["type"] == 'disarm':
-                #disarm은 아마 착륙하면 자동으로 될것
+                # disarm은 아마 착륙하면 자동으로 될 것
                 pass
             elif single_message["type"] == 'startDrop':
                 await self.changeMode(SEEK_MODE)
             else:
-                print("undefinded message")
-                
-            # print(95)
+                print("undefined message")
+            print(105)
             if self.task_halt:
                 print("break message")
                 break
-            await cond.release()
-            
-        # print(100) 
+
      
     async def updateStatus(self):
         '''
@@ -233,40 +228,41 @@ class DroneMode:
         주요 기능 동작을 위함
         현재 mode에 맞는 task를 생성하고 실행
         '''
-        while True:
-            self.initTask()
-            self.created_task_list.clear()
-            # print(self.created_task_list)
-            # print(111, self.parent.mode)
-            # print(147, self.task_list)
-            # print('all task : ', end =' ')
-            # print(task for task in asyncio.all_tasks())
-            self.task_halt = False
-            # print(self.task_list)
+        # while True:
             
-            # loop = asyncio.get_running_loop()        
-            
-            # print(i for i in asyncio.all_tasks(loop=loop))
-            # print(self.task_list)
-            # print(self.created_task_list)
-            for single_task in self.task_list:
-                print(148, single_task)
-                try:
-                    single_created_task = asyncio.create_task(single_task)
-                    print(170, type(single_created_task))
-                    self.created_task_list.append(single_created_task)
-                    
-                except ValueError as val_e:
-                    print(val_e)
-            try:
-                await asyncio.wait(self.created_task_list)
-            except KeyboardInterrupt:
-                await self.stop_task()
-            # print(self.created_task_list)
-            # print(158)
-            # print('all task : ', end =' ')
-            # print(task for task in asyncio.all_tasks())
+        self.initTask()
+        self.created_task_list.clear()
+        # print(self.created_task_list)
+        # print(111, self.parent.mode)
+        # print(147, self.task_list)
+        # print('all task : ', end =' ')
+        # print(task for task in asyncio.all_tasks())
+        self.task_halt = False
+        # print(self.task_list)
         
+        # loop = asyncio.get_running_loop()        
+        
+        # print(i for i in asyncio.all_tasks(loop=loop))
+        # print(self.task_list)
+        # print(self.created_task_list)
+        for single_task in self.task_list:
+            print(148, single_task)
+            try:
+                single_created_task = asyncio.create_task(single_task)
+                print(170, type(single_created_task))
+                self.created_task_list.append(single_created_task)
+                
+            except ValueError as val_e:
+                print(val_e)
+        try:
+            await asyncio.wait(self.created_task_list)
+        except KeyboardInterrupt:
+            await self.stop_task()
+        # print(self.created_task_list)
+        # print(158)
+        # print('all task : ', end =' ')
+        # print(task for task in asyncio.all_tasks())
+    
     
     def start(self):
         '''
