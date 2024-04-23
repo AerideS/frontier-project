@@ -312,6 +312,7 @@ import time
 
 #테스트용 함수!
 def test_receiver():
+    # receiver = MqReceiver('drone1', 'localhost')
     receiver = MqReceiver('drone1', 'localhost')
     receiver.start()
 
