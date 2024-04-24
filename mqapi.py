@@ -319,15 +319,30 @@ def test_receiver():
     receiver.start()
 
 def test_sender():
+    '''
+    DEMO
+    start point : 35.15970, 128.082627
+    --- draw square
+    first Point : 35.15975, 128.082627
+    second point: 35.15975, 128.082622
+    third Point : 35.15970, 128.082622
+    fourth Point: 35.15970, 128.082627
+    --- seek Tree : 35.15970, 128.082627   
+    '''
+
     sender = MqSender('drone1', 'localhost')
     # sender = MqSender('localhost')
     # time.sleep(5)
     sender.arm()
-
-    # time.sleep(5)
-    # sender.wait(1)
     sender.takeoff(30)
-    sender.wait(5)
+    sender.wait(2)
+    sender.goto(35.15975, 128.082627)
+    sender.goto(35.15975, 128.082622)
+    sender.goto(35.15970, 128.082622)
+    sender.goto(35.15970, 128.082627)
+    sender.startDrop(35.15970, 128.082627)
+    sender.land()
+    
     # # time.sleep(10)
     # # asyncio.run(sender.send_message(1111, "SERVER"))
     # sender.startDrop(None, None)
@@ -338,7 +353,7 @@ def test_sender():
     # # time.sleep(1)
     # sender.wait(60)
     # time.sleep(1)
-    sender.land()
+    # sender.land()
     # time.sleep(1)
     # sender.disarm()
     # time.sleep(1)
@@ -354,7 +369,7 @@ if __name__ == '__main__':
     TEST = 1
     if TEST == 1:
         # test_sender_receiver 함수를 쓰레드로 실행
-        threading.Thread(target=test_receiver).start()
+        # threading.Thread(target=test_receiver).start()
         threading.Thread(target=test_sender).start()
     else:
         receiver = MqReceiver('drone1', 'localhost')

@@ -2,6 +2,7 @@ import asyncio
 import random
 #import Jetson.GPIO as GPIO
 import asyncio
+import cv2
 
 class Dropper__STUB:
     def __init__(self) -> None:
@@ -37,7 +38,25 @@ class LidarModule__STUB:
         return_alt = random.randint(3, 8)
         return return_alt
         
+class RaspiCAM:
+    '''
+    현재 웹캠에서 이미지 받아옴
+    '''
+    
+    def __init__(self) -> None:
+        self.status = False
+        # try:
+        self.cap = cv2.VideoCapture(0)
+        # except 
         
+    def getPicture(self):
+        ret, frame = self.cap.read()  
+        if not ret:
+            print(1)
+            return
+        cv2.imshow('', frame)      
+        picture = None
+        return picture  
         
 class RaspiCAM__STUB:
     '''
@@ -47,8 +66,8 @@ class RaspiCAM__STUB:
     def __init__(self) -> None:
         pass
         
-    async def getPicture(self):
-        await asyncio.sleep(1)
+    def getPicture(self):
+        
         
         picture = None
         return picture
@@ -69,5 +88,10 @@ class FindTree__STUB:
         작동 과정
         카메라 읽기 -> 이미지 객체 판독 -> 박스 결과 yield로 반환하기 반복
         '''
-        return (1, 1)
+        print('find_tree_coordinate')
+        return 1, 1
     
+    
+if __name__ == '__main__':
+    cam = RaspiCAM()
+    cam.getPicture()

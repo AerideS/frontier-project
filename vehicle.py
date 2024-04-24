@@ -13,7 +13,9 @@ DRONE_SPEED = 2
 LOCATION_BEACON_PERIOD = 2
 
 # 근접 범위 지정
-MOVE_ACCURACY = 1
+MOVE_ACCURACY = 0.25
+
+ARRIVAL_CHECK_PERIOD = 0.5
 
 class Vehicle:
     def __init__(self, system_address) -> None:
@@ -22,25 +24,33 @@ class Vehicle:
         self.drone_system = None  # drone_system 속성 초기화
         asyncio.create_task(self.initConnect())
         
-    async def waitForHold(self):
+    async def checkArrival(self, latitude, longitude):
+        while True:
+            
+            await asyncio.sleep(ARRIVAL_CHECK_PERIOD)
+        
+    async def waitForHold(self, cur_order):
         '''
         드론의 현재 비행 상태를 받아옴
         '''
-        async for mode in self.drone_system.telemetry.flight_mode():
-            print(mode)
-            
-            # print(type(mode))
-            if mode == telemetry.FlightMode.HOLD:
-                '''
-                이전 동작을 완료한 경우 break
-                '''
-                break
-    
+        try:
+            async for mode in self.drone_system.telemetry.flight_mode():
+                print(mode, cur_order)
+
+                # print(type(mode))
+                if mode == telemetry.FlightMode.HOLD:
+                    '''
+                    이전 동작을 완료한 경우 break
+                    '''
+                    break
+        except GeneratorExit as e:
+            print(e, cur_order)
+
     async def getLocation(self):
         '''
         현재 위치 종합하여 반환
         '''
-        await self.initConnect()
+        # await self.initConnect()
         while True:
             battery, velocity, position = None, None, None
             async for singel_vel in self.drone_system.telemetry.velocity_ned():
@@ -86,36 +96,48 @@ class Vehicle:
         await self.drone_system.action.takeoff()  # 드론 이륙
         print('--takeoff complete')
 
-    async def goto(self, target_lat, target_lon, target_alt):
+    async def goto(self, target_lat, target_lon, target_alt=None):
         '''
         input
         output : 이동 결과
         '''
-        
+        if target_alt is None:
+            async for alt in self.drone_system.telemetry.altitude():
+                target_alt = alt.altitude_monotonic_m
+                break
         # await self.initConnect()
         # 목표 위치 설정
         self.target_position = (target_lat, target_lon, target_alt)
 
         # 이동 명령 보내기
-        await self.drone_system.action.goto_location(target_lat, target_lon, target_alt, 0)
+        await self.drone_system.action.goto_location(target_lat, target_lon, target_alt, 0.0)
 
-        # 이동 명령이 완료될 때까지 대기
-        while True:
-            # 현재 위치 업데이트
-            async for position in self.drone_system.telemetry.position():
-                self.current_position = (position.latitude_deg, position.longitude_deg, position.absolute_altitude_m)
-                break
-
-            # 현재 위치와 목표 위치 사이의 거리 계산
-            distance = self.calculate_distance(*self.current_position, *self.target_position)
+        # 스레드 오류 생김
         
-            # 거리가 기준 이내인지 확인하여 반환
-            if distance <= MOVE_ACCURACY:
-                break
+        # 이동 명령이 완료될 때까지 대기
+        try:
+            while True:
+                # 현재 위치 업데이트
 
-        await asyncio.sleep(1)  # 1초 대기
+                async for position in self.drone_system.telemetry.position():
+                    self.current_position = (position.latitude_deg, position.longitude_deg, position.absolute_altitude_m)
+                    break
 
-    def calculate_distance(self, current_lat, current_lon, target_lat, target_lon, current_alt, target_alt):
+                # 현재 위치와 목표 위치 사이의 거리 계산
+                distance = self.calculate_distance(*self.current_position, *self.target_position)
+
+                # 거리가 기준 이내인지 확인하여 반환
+                if distance <= MOVE_ACCURACY:
+                    break
+                print("moving...", distance, MOVE_ACCURACY, self.current_position, self.target_position)
+                await asyncio.sleep(ARRIVAL_CHECK_PERIOD)
+        except GeneratorExit:
+            print("why?")
+
+
+        # await asyncio.sleep(1)  # 1초 대기
+
+    def calculate_distance(self, current_lat, current_lon, current_alt, target_lat, target_lon, target_alt):
         # 지구의 반지름 (단위 : m)
         R = 6371000
         
@@ -139,37 +161,37 @@ class Vehicle:
 
     async def move_meters(self, north_distance, east_distance):
         original_position = None
-        
-        # await self.initConnect()  # 드론 연결 및 초기화
+        print("move to", north_distance, east_distance, type(north_distance), type(east_distance))
         
         # 현재 위치를 가져오는 코드
         async for position in self.drone_system.telemetry.position():
             if original_position is None:
                 original_position = position
+            print(position)
             current_lat = position.latitude_deg
             current_lon = position.longitude_deg
             current_alt = position.absolute_altitude_m
-            
+            print(170)
             # 대각선 거리 계산
             diagonal_distance = sqrt(north_distance ** 2 + east_distance ** 2)
-
+            print(173)
             # 이동에 소요될 예상 시간 계산 (단위: 초)
             move_duration = diagonal_distance / DRONE_SPEED
-
+            print(176)
             # 대기 시간 계산
             wait_duration = move_duration
-            
+            print(179)            
             new_lat = current_lat + (north_distance / 111111)
             new_lon = current_lon + (east_distance / (111111 * abs(cos(radians(current_lat)))))
-
+            print(182)
             # 이동 처리
             await self.drone_system.action.goto_location(new_lat, new_lon, current_alt, yaw_deg=0)
-            
+            print(185)            
             # 현재 고도가 안전 거리보다 작을 경우 고도 조정
             if current_alt < MIN_SAFE_DISTANCE:
                 print("고도를 조정하여 안전 거리를 유지합니다.")
                 await self.drone_system.action.goto_location(new_lat, new_lon, current_alt + MIN_SAFE_DISTANCE, yaw_deg=0)
-
+            print(190)
 
     async def setElev(self, altitude):
         print(f"고도 변경 중: {altitude}")
