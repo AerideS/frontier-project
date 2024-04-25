@@ -20,8 +20,10 @@ class MqReceiverAsync:
         
     async def getMessage(self):
         # RabbitMQ 연결 설정
+        connected = False
         try:
             connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
+            connected = True
             async with connection:
                 # 채널 열기
                 channel = await connection.channel()
@@ -40,7 +42,8 @@ class MqReceiverAsync:
             print(excpt)
                         
         finally:
-            await connection.close()
+            if connected:
+                await connection.close()
             
             
     async def stop(self):
@@ -315,7 +318,6 @@ import time
 
 #테스트용 함수!
 def test_receiver():
-    # receiver = MqReceiver('drone1', 'localhost')
     receiver = MqReceiver('drone1', 'localhost')
     receiver.start()
 
@@ -334,13 +336,13 @@ def test_sender():
     sender = MqSender('drone1', 'localhost')
     # sender = MqSender('localhost')
     # time.sleep(5)
-    sender.arm()
-    sender.takeoff(30)
-    sender.wait(2)
-    sender.goto(35.15975, 128.082627)
-    sender.goto(35.15975, 128.082622)
-    sender.goto(35.15970, 128.082622)
-    sender.goto(35.15970, 128.082627)
+    # sender.arm()
+    # sender.takeoff(30)
+    # sender.wait(2)
+    # sender.goto(35.15975, 128.082627)
+    # sender.goto(35.15975, 128.082622)
+    # sender.goto(35.15970, 128.082622)
+    # sender.goto(35.15970, 128.082627)
     sender.startDrop(35.15970, 128.082627)
     sender.land()
     
