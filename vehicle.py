@@ -95,6 +95,7 @@ class Vehicle:
         # self.takeoff_altitude = self.drone_system.action.get_takeoff_altitude()
         await self.drone_system.action.takeoff()  # 드론 이륙
         print('--takeoff complete')
+        # todo : 고도 줄 수 있도록 
 
     async def goto(self, target_lat, target_lon, target_alt=None):
         '''
@@ -197,6 +198,7 @@ class Vehicle:
         print(f"고도 변경 중: {altitude}")
         # await self.initConnect()
         await self.drone_system.setElev(altitude) 
+        # todo : 작동 되도록 : 고도값 주면 고도 변경 되도록
         
     async def wait(self, time):
         print(f"{time}초 대기 중")
