@@ -24,17 +24,18 @@ class MqReceiverAsync:
         try:
             connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
             connected = True
+            print('connected', connected, self.server_ip)
             async with connection:
                 # 채널 열기
                 channel = await connection.channel()
-                
+                print(31)
                 # 큐 선언
                 queue = await channel.declare_queue(name=self.device_name, durable=True)
-                
+                print(34)
                 # 메시지 받기
                 async for message in queue:
-                    if self._keep_going is False:
-                        break
+                    # if self._keep_going is False:
+                    #     break
                     async with message.process():
                         # 메시지 처리
                         yield json.loads(message.body.decode())
@@ -316,10 +317,16 @@ class MqSender:
 
 import time
 
+async def test_receiver_async():
+    receiver = MqReceiverAsync('drone1', 'localhost')
+    async for message in receiver.getMessage():
+        print(message)
+    
 #테스트용 함수!
 def test_receiver():
-    receiver = MqReceiver('drone1', 'localhost')
-    receiver.start()
+    asyncio.run(test_receiver_async)
+    # receiver = MqReceiver('drone1', 'localhost')
+    # receiver.start()
 
 def test_sender():
     '''
@@ -336,15 +343,15 @@ def test_sender():
     sender = MqSender('drone1', 'localhost')
     # sender = MqSender('localhost')
     # time.sleep(5)
-    # sender.arm()
-    # sender.takeoff(30)
+    sender.arm()
+    sender.takeoff(30)
     # sender.wait(2)
     # sender.goto(35.15975, 128.082627)
     # sender.goto(35.15975, 128.082622)
     # sender.goto(35.15970, 128.082622)
     # sender.goto(35.15970, 128.082627)
     sender.startDrop(35.15970, 128.082627)
-    sender.land()
+    # sender.land()
     
     # # time.sleep(10)
     # # asyncio.run(sender.send_message(1111, "SERVER"))
@@ -372,7 +379,7 @@ if __name__ == '__main__':
     TEST = 1
     if TEST == 1:
         # test_sender_receiver 함수를 쓰레드로 실행
-        # threading.Thread(target=test_receiver).start()
+        threading.Thread(target=test_receiver).start()
         threading.Thread(target=test_sender).start()
     else:
         receiver = MqReceiver('drone1', 'localhost')

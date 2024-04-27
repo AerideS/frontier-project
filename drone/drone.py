@@ -31,12 +31,6 @@ class NormalMode:
         
     def __str__(self) -> str:
         return 'NORMAL_MODE'
-     
-    async def start(self):
-        pass
-    
-    async def stop(self):
-        pass
 
 class SeekMode:
     '''
@@ -95,12 +89,6 @@ class SeekMode:
                 break
             
             await asyncio.sleep(3)
-        
-    async def start(self):
-        pass
-    
-    async def stop(self):
-        pass
             
     def convertPixelToMeters(self, pixel_width_dis, pixel_height_dis, lidar_dis):
         '''
@@ -130,12 +118,6 @@ class DropMode:
         self.dropper = Dropper__STUB()
         self.lidar_module = LidarModule()
 
-    async def start(self):
-        pass
-    
-    async def stop(self):
-        pass
-        
     def __str__(self) -> str:
         return 'DROP_MODE'
     
@@ -172,12 +154,6 @@ class ReturnMode:
             
         # loop 문 탈출한 경우에는 집 못찾은 것이므로 안전 고도로 상승하여
         # GCS 위치로 복귀함
-
-    async def start(self):
-        await super().start_task()
-    
-    async def stop(self):
-        super().stop()
         
     def __str__(self) -> str:
         return 'RETURN_MODE'
@@ -226,6 +202,11 @@ class Drone:
         # 초기 모드를 normal 모드로
         self.cur_mode = NormalMode(self)
         
+        self.next_mode = None
+        
+    async def initSystem(self):
+        await self.vehicle.initConnect()
+        
     def applyTask(self):
                 
         self.task_list.clear()        
@@ -236,6 +217,8 @@ class Drone:
         
         for single_sub_task in self.cur_mode.task_list:
             self.task_list.append(single_sub_task)
+            
+        print('task :', self.task_list)
     
     async def userInteraction(self):
         print_text = ""
@@ -244,7 +227,7 @@ class Drone:
             
             if user_input == 'MODE':
                 print(self.cur_mode)
-   
+                      
     async def processMessage(self):
         '''
         receiver에서 메세지를 받아 해석 후 mavsdk 명령 수행
@@ -364,11 +347,12 @@ class Drone:
         모드 변경
         기존 수행중인 task를 종료하고 새로운 객체 생성 후 실행
         '''
-
+        print(348)
         for single_task in self.created_task_list:
             self.task_halt = True
+            print(351, single_task)
             single_task.cancel()
-            print(363, single_task)
+            print(353, single_task)
             
         if new_mode == NORMAL_MODE:
             self.cur_mode = NormalMode(self)
@@ -385,7 +369,21 @@ class Drone:
         print(377, self.cur_mode)
         await self.start_task()       
                
-    async def start_task(self):
+    async def stop_task(self):
+        '''
+        mode 변환 등을 위해 수행중인 task를 종료함
+        사용되지 않음
+        '''
+        # print(129)
+        for single_task in self.created_task_list:
+            single_task.cancel()
+            
+            try:
+                await single_task
+            except asyncio.CancelledError:
+                print("task canceled")               
+
+    async def start(self):
         '''
         todo : 착륙시, 미션 종료시 아래의 loop 탈출 필요
         주요 기능 동작을 위함
@@ -399,65 +397,25 @@ class Drone:
         self.task_halt = False
         print(392)
 
+        await self.initSystem()
         
         print(395)
         for single_task in self.task_list:
             print(148, single_task)
             try:
-                single_created_task = asyncio.create_task(single_task)
+                single_created_task = asyncio.ensure_future(single_task)
                 print(170, type(single_created_task))
                 self.created_task_list.append(single_created_task)
                 
             except ValueError as val_e:
                 print(val_e)
         try:
+            print(413)
             await asyncio.wait(self.created_task_list)
+            print(415) # 왜 끝나지...?
         except KeyboardInterrupt:
             await self.stop_task()
-
-    
-    def start(self):
-        '''
-        start_task를 위한 동작 
-        '''
-        try:
-            # asyncio.get_event_loop().run_until_complete(self.start_task())
-            asyncio.run(self.start_task())
-        except ValueError as val_e:
-            # 현재 실행중인 함수 목록이 없을 경우 처리
-            print(val_e)
-        
-    async def stop_task(self):
-        '''
-        mode 변환 등을 위해 수행중인 task를 종료함
-        사용되지 않음
-        '''
-        # print(129)
-        for single_task in self.created_task_list:
-            single_task.cancel()
-            
-            try:
-                await single_task
-            except asyncio.CancelledError:
-                print("task canceled")
-
-    def stop(self):
-        '''
-        mode 변환 등을 위해 수행중인 task를 종료함
-        사용되지 않음
-        '''
-        # print(135)
-        self.task_halt = True
-        for single_task in self.created_task_list:
-            # print(150)
-            single_task.cancel()
-        loop = asyncio.get_running_loop()        
-        
-        # print(i for i in asyncio.all_tasks(loop=loop))
-        
-        # print(140)  
-    
-        
+      
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='드론 작동을 위한 기본 정보')
     parser.add_argument('-name', help=' : 현재 드론의 이름')
@@ -468,6 +426,6 @@ if __name__ == '__main__':
         tracemalloc.start()
         # drone = Drone(args.name, args.server)
         drone = Drone('drone1', 'localhost')
-        await drone.start_task()
+        await drone.start()
         
     asyncio.run(main())

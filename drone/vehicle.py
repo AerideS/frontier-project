@@ -22,7 +22,8 @@ class Vehicle:
         self.system_address = system_address
         self.takeoff_altitude = None
         self.drone_system = None  # drone_system 속성 초기화
-        asyncio.create_task(self.initConnect())
+        self.initiated = False
+        # asyncio.create_task(self.initConnect())
         
     async def checkArrival(self, latitude, longitude):
         while True:
@@ -50,7 +51,9 @@ class Vehicle:
         '''
         현재 위치 종합하여 반환
         '''
-        # await self.initConnect()
+        # while self.drone_system == None:
+        #     await asyncio.sleep(0.5)
+        
         while True:
             battery, velocity, position = None, None, None
             async for singel_vel in self.drone_system.telemetry.velocity_ned():
@@ -68,21 +71,24 @@ class Vehicle:
             await asyncio.sleep(LOCATION_BEACON_PERIOD)
             
     async def initConnect(self):
-        self.drone_system = System()
-        await self.drone_system.connect(self.system_address)
         
-        print("드론 연결 대기 중...")
-        async for state in self.drone_system.core.connection_state():
-            if state.is_connected:
-                print(f"드론 발견!")
-                break
+        if self.drone_system is None:
+        
+            self.drone_system = System()
+            await self.drone_system.connect(self.system_address)
+            
+            print("드론 연결 대기 중...")
+            async for state in self.drone_system.core.connection_state():
+                if state.is_connected:
+                    print(f"드론 발견!")    
+                    break
 
-        print("드론의 전역 위치 추정 대기 중...")
-        async for health in self.drone_system.telemetry.health():
-            if health.is_global_position_ok:
-                print("전역 위치 추정 완료")
-                break
-
+            print("드론의 전역 위치 추정 대기 중...")
+            async for health in self.drone_system.telemetry.health():
+                if health.is_global_position_ok:
+                    print("전역 위치 추정 완료")
+                    break
+        
     async def arm(self):
         # await self.initConnect()
         await self.drone_system.action.arm()  # 드론 연결
@@ -162,9 +168,10 @@ class Vehicle:
 
     async def move_meters(self, north_distance, east_distance):
         original_position = None
-        print("move to", north_distance, east_distance, type(north_distance), type(east_distance))
-        
+        print('move_meters', north_distance, east_distance)
+        await asyncio.sleep(0.5)
         # 현재 위치를 가져오는 코드
+        print(174)
         async for position in self.drone_system.telemetry.position():
             if original_position is None:
                 original_position = position
@@ -172,27 +179,28 @@ class Vehicle:
             current_lat = position.latitude_deg
             current_lon = position.longitude_deg
             current_alt = position.absolute_altitude_m
-            print(170)
+            
             # 대각선 거리 계산
             diagonal_distance = sqrt(north_distance ** 2 + east_distance ** 2)
-            print(173)
+
             # 이동에 소요될 예상 시간 계산 (단위: 초)
             move_duration = diagonal_distance / DRONE_SPEED
-            print(176)
+
             # 대기 시간 계산
             wait_duration = move_duration
-            print(179)            
+
             new_lat = current_lat + (north_distance / 111111)
             new_lon = current_lon + (east_distance / (111111 * abs(cos(radians(current_lat)))))
-            print(182)
+
             # 이동 처리
-            await self.drone_system.action.goto_location(new_lat, new_lon, current_alt, yaw_deg=0)
-            print(185)            
+            await self.goto(new_lat, new_lon, current_alt)
+
             # 현재 고도가 안전 거리보다 작을 경우 고도 조정
             if current_alt < MIN_SAFE_DISTANCE:
                 print("고도를 조정하여 안전 거리를 유지합니다.")
-                await self.drone_system.action.goto_location(new_lat, new_lon, current_alt + MIN_SAFE_DISTANCE, yaw_deg=0)
-            print(190)
+                await self.goto(new_lat, new_lon, current_alt + MIN_SAFE_DISTANCE)
+                
+            break
 
     async def setElev(self, altitude):
         print(f"고도 변경 중: {altitude}")
@@ -218,51 +226,16 @@ class Vehicle:
         # disarm은 착륙 후 자동으로 될 것이므로 pass
         pass
 
-    async def startDrop(self):
-        # startDrop 이벤트가 발생하면 Drop 모드로 변경
-        self.drone_system.changeMode("Drop")
-
 async def main():
     system_address = 'udp://:14540'
     vehicle = Vehicle(system_address)
-    # drone_system = System()
-    # await drone_system.connect(system_address)
-    # async for bat in drone_system.telemetry.battery():
-    #     print(bat)
     await vehicle.initConnect()
-    async for data in vehicle.getLocation():
-        velocity, battery, position = data
-        print(position, battery, velocity, sep='\n',end='\n------------------\n')
-    # if len(sys.argv) > 1:
-    #     command = sys.argv[1].lower()
-
-    #     loop = asyncio.get_event_loop()
-
-    #     if command == 'takeoff':
-    #         await vehicle.initConnect()
-    #         await vehicle.takeoff()
-    #     elif command == 'arm':
-    #         await vehicle.initConnect()
-    #         await vehicle.arm()
-    #     elif command == 'land':
-    #         await vehicle.initConnect()
-    #         await vehicle.land()
-    #     elif command == 'goto':
-    #         if len(sys.argv) != 5:
-    #             print("Usage: python script.py goto <latitude> <longitude> <altitude>")
-    #         else:
-    #             real_lat, real_lon, real_alt = map(float, sys.argv[2:])
-    #             await vehicle.initConnect()
-    #             await vehicle.goto(real_lat, real_lon, real_alt)
-    #     elif command == 'move_meters':
-    #         north_distance = float(input("북쪽으로 얼마나 이동하시겠습니까? (미터단위)"))
-    #         east_distance = float(input("동쪽으로 얼마나 이동하시겠습니까? (미터 단위): "))
-    #         await vehicle.initConnect()
-    #         await vehicle.move_meters(north_distance, east_distance)
-    #     else:
-    #         print("올바른 명령을 입력하세요.")
-    # else:
-    #     print("명령을 입력하세요 (takeoff, land, goto, move_meters).")
+    await vehicle.land()
+    # await vehicle.arm()
+    # await asyncio.sleep(5)
+    # await vehicle.takeoff()
+    # await asyncio.sleep(10)
+    # await vehicle.move_meters(1,1)
 
 if __name__ == '__main__':
     asyncio.run(main())
