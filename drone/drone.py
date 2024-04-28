@@ -1,4 +1,3 @@
-import mqapi
 import argparse
 from networkChecker import networkChecker
 from multiprocessing import Process
@@ -10,6 +9,12 @@ from datetime import datetime
 from hardware import * # todo : 각 하드웨어에 대해 별도로 import 하지 않고 하나로 합칠수도 있을 듯
 from math import tan
 import tracemalloc
+
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
+import mqapi
 
 # 각 모드의 code 정의
 NORMAL_MODE = 1
@@ -77,7 +82,7 @@ class SeekMode:
             process_result = await self.yolo_module.find_tree_coordinate(this_pic)
             print(370)
             if process_result is None:
-                pass # 결과가 없을 경우 이동하고 다시
+                pass # 결과가 없을 경우 이동하고 다시 비행하는 과정 포함
                 print(373)
             else:
                 x_dis, y_dis = process_result
@@ -211,8 +216,8 @@ class Drone:
                 
         self.task_list.clear()        
         self.task_list.append(self.processMessage()) # 메세지 수신 및 드론 동작
-        # self.task_list.append(self.checkNetwork())   # 네트워크 연결 확인
-        # self.task_list.append(self.updateStatus())    # 기체의 상태 받아옴
+        self.task_list.append(self.checkNetwork())   # 네트워크 연결 확인
+        self.task_list.append(self.updateStatus())    # 기체의 상태 받아옴
         self.task_list.append(self.userInteraction())
         
         for single_sub_task in self.cur_mode.task_list:
@@ -220,7 +225,8 @@ class Drone:
             
         print('task :', self.task_list)
     
-    async def userInteraction(self):
+    async def userInteraction(self): 
+        # todo : 모드 변경시 user interaction 2번 들어가는 문제가 있었는데 해결 필요
         print_text = ""
         while True:
             user_input = await asyncio.to_thread(input, print_text)
@@ -398,7 +404,8 @@ class Drone:
         print(392)
 
         await self.initSystem()
-        
+        print(407, end=": ")
+        print(task.get_name() for task in asyncio.all_tasks())
         print(395)
         for single_task in self.task_list:
             print(148, single_task)
@@ -413,6 +420,8 @@ class Drone:
             print(413)
             await asyncio.wait(self.created_task_list)
             print(415) # 왜 끝나지...?
+            print(asyncio.current_task().get_name())
+            print(task.get_name() for task in asyncio.all_tasks())
         except KeyboardInterrupt:
             await self.stop_task()
       

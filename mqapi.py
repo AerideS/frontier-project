@@ -318,15 +318,16 @@ class MqSender:
 import time
 
 async def test_receiver_async():
-    receiver = MqReceiverAsync('drone1', 'localhost')
-    async for message in receiver.getMessage():
-        print(message)
+    # receiver = MqReceiverAsync('drone1', 'localhost')
+    # async for message in receiver.getMessage():
+    #     print(message)
+    pass
     
 #테스트용 함수!
 def test_receiver():
-    asyncio.run(test_receiver_async)
-    # receiver = MqReceiver('drone1', 'localhost')
-    # receiver.start()
+    # asyncio.run(test_receiver_async)
+    receiver = MqReceiver('drone1', 'localhost')
+    receiver.start()
 
 def test_sender():
     '''
@@ -379,8 +380,9 @@ if __name__ == '__main__':
     TEST = 1
     if TEST == 1:
         # test_sender_receiver 함수를 쓰레드로 실행
-        threading.Thread(target=test_receiver).start()
         threading.Thread(target=test_sender).start()
+        # threading.Thread(target=test_receiver).start()
+        
     else:
         receiver = MqReceiver('drone1', 'localhost')
         receiver.start()
