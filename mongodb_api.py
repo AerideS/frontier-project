@@ -17,7 +17,7 @@ class Waypoints:
     '''
     
     def __init__(self) -> None:
-        client = MongoClient('mongodb://localhost:27017/')
+        client = MongoClient('mongodb://203.255.57.122:27018/')
         self.db = client['waypoint']
         self.collection = self.db['waypoints']
         self.waypoint_num = 0 # waypoint의 개수
