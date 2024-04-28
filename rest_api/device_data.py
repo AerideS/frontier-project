@@ -1,10 +1,13 @@
 from flask import request
 from flask_restx import Resource, Api, Namespace
 
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
-todos = {}
-count = 1
+from mongodb_api import DroneData
 
+device_data = DroneData()
 
 Devices  = Namespace(
     name="Devices",
@@ -12,40 +15,25 @@ Devices  = Namespace(
 )
 
 @Devices.route('')
-class DeviceInformation(Resource):
-    
-    
-    def post(self):
-        global count
-        global todos
+class DeviceInfo(Resource):
+    '''
+    전체 device에 대한 정보
+    '''
+    def get(self):
+        print(device_data.getDeviceList())
+        return {'result' : device_data.getDeviceList()}
+
+@Devices.route('/<int:device_id>')
+class DevicesInfoSpec(Resource):
+    def get(self, device_id):
+        data = device_data.get_device_data(device_id)
+        if data is not None:
+            return {'result' : data}
+
+    def put(self, device_id):
+        # latitude =
+        # longitude =
+        # altitude =
+        # device_data.update_device_data(device_id, longitude, latitude, altitude)
         
-        idx = count
-        count += 1
-        todos[idx] = request.json.get('data')
-        
-        return {
-            'todo_id': idx,
-            'data': todos[idx]
-        }
-
-
-@Devices.route('/<int:todo_id>')
-class TodoSimple(Resource):
-    def get(self, todo_id):
-        return {
-            'todo_id': todo_id,
-            'data': todos[todo_id]
-        }
-
-    def put(self, todo_id):
-        todos[todo_id] = request.json.get('data')
-        return {
-            'todo_id': todo_id,
-            'data': todos[todo_id]
-        }
-    
-    def delete(self, todo_id):
-        del todos[todo_id]
-        return {
-            "delete" : "success"
-        }
+        return {'put' : 'success'}

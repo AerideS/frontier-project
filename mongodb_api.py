@@ -122,7 +122,7 @@ class Waypoints:
         
 class DroneData:
     def __init__(self) -> None:
-        client = MongoClient('mongodb://localhost:27017/')
+        client = MongoClient('mongodb://203.255.57.122:27018/')
         self.db = client['drone_data1']
 
     def add_device_data(self, drone_id, longitude, latitude, altitude):
@@ -201,6 +201,8 @@ if __name__ == '__main__':
     # drone_data.add_device_data('drone3', 34.0522, -118.2437, 150)
     # print(drone_data.getDeviceList())
     # print(drone_data.get_device_data('drone1'))
+    # print(drone_data.get_device_data('drone2'))
+    # print(drone_data.get_device_data('drone3'))
     waypoint = Waypoints()
     waypoint.clearWaypoint()
     waypoint.addWaypoint(111.111, 222.222)
