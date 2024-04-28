@@ -36,7 +36,7 @@ class networkChecker:
                 # 대기 시간 설정
                 await asyncio.sleep(self.period)
             except asyncio.CancelledError:
-                print("task canceled")
+                print("network check task canceled")
 
         
     async def start(self):

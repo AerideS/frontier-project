@@ -176,6 +176,9 @@ class Drone:
         '''
         'drone1', 'localhost'
         '''
+        self.device_name = device_name
+        self.server_addr = server_addr
+        
         print(device_name, server_addr)
         
         # rabbitmq message receiver
@@ -304,7 +307,7 @@ class Drone:
         '''
         data =  {
             "time" : datetime.now().timestamp(),
-            "device" : self.parent.drone_name,
+            "device" : self.device_name,
             "position" : {
                 "latitude_deg" : position.latitude_deg,
                 "longitude_deg" : position.longitude_deg,
@@ -336,23 +339,30 @@ class Drone:
             네트워크 연결이 확인됨 : 현재 task를 종료하고 기존 실행 모드로 
             네트워크 연결이 확인되지 않음 : 현재 task 지속 수행
         '''
-        async for response in self.networkChecker.ping():
-            # print(response)
-            if self.task_halt:
-                break
+        try:
+            async for response in self.networkChecker.ping():
+                # print(response)
+                if self.task_halt:
+                    break
+                
+                if self.cur_mode == "RETURN_MODE":
+                    if response == True:
+                        self.changeMode(self.cur_mode.prev_mode)
+                else:
+                    if response == False:
+                        self.changeMode(RETURN_MODE)
+        except asyncio.CancelledError as err:
+            print(err)
             
-            if self.cur_mode == "RETURN_MODE":
-                if response == True:
-                    self.changeMode(self.cur_mode.prev_mode)
-            else:
-                if response == False:
-                    self.changeMode(RETURN_MODE)
-          
+        finally:
+            pass # todo
+            
     async def changeMode(self, new_mode):
         '''
         모드 변경
         기존 수행중인 task를 종료하고 새로운 객체 생성 후 실행
         '''
+        print(task.get_name() for task in asyncio.all_tasks())
         print(348)
         for single_task in self.created_task_list:
             self.task_halt = True
@@ -418,6 +428,7 @@ class Drone:
                 print(val_e)
         try:
             print(413)
+            print(task.get_name() for task in asyncio.all_tasks())
             await asyncio.wait(self.created_task_list)
             print(415) # 왜 끝나지...?
             print(asyncio.current_task().get_name())
