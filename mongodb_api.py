@@ -150,7 +150,7 @@ class DroneData:
         '''
         collection_name = 'drone_data'
         collection = self.db[collection_name]
-        data = collection.find_one({'drone_id': drone_id})
+        data = collection.find_one({'drone_id': drone_id}, {"_id": 0})
         return data
 
     def update_device_data(self, drone_id, longitude, latitude, altitude):
