@@ -34,7 +34,7 @@ body { margin: 0; padding: 0; }
 </div>
 
 <script>
-	mapboxgl.accessToken = 'pk.eyJ1IjoibGdoNjk2MyIsImEiOiJjbHRwaWJ5NXAwNjNpMmpwZmo0dzg5MmcyIn0.WRICTXvdHP46wiy2GmLJDw';
+	mapboxgl.accessToken = "pk.eyJ1IjoibGdoNjk2MyIsImEiOiJjbHRwaWJ5NXAwNjNpMmpwZmo0dzg5MmcyIn0.WRICTXvdHP46wiy2GmLJDw"
     const map = new mapboxgl.Map({
         container: 'map',
         // Choose from Mapbox's core styles, or make your own style with Mapbox Studio,
@@ -44,13 +44,39 @@ body { margin: 0; padding: 0; }
         pitch: 40
     });
 
-    marker = []
+    markers = []
+    
+    // TO DO : 저장된 MARKER 불러오기
+    const fetchData = async () => {
+        try {
+            markers = [];
+            const response = await fetch(
+                'http://203.255.57.136:5001/waypoint',
+                { method: 'GET' }
+            );
+            const data = await response.json();
+            var result = data.result;
+            for(var i = 0; i < result.length; i++) {
+                newPoint = [result[i].latitude, result[i].longitude];
+                new mapboxgl.Marker() // Correct method name
+            .setLngLat(newPoint)
+            .addTo(map);
+            }
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+    };
+    fetchData();
+
+    
+
     map.on('click', (e) => {
         newPoint = [e.lngLat.lng, e.lngLat.lat];
-        marker.push(new mapboxgl.Marker()
-        .setLngLat(newPoint)
-        .addTo(map));
-        alert("WP " + marker.length + " Setted")
+        new mapboxgl.Marker() // Correct method name
+    .setLngLat(newPoint)
+    .addTo(map);
+        alert("WP " + markers.length + " Setted");
+        console.log(e.lngLat.lng);
 
         // newPoint 변수를 Flask로 보내기
         fetch('/service', {

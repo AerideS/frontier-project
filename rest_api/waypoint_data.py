@@ -3,6 +3,7 @@ from flask_restx import Resource, Api, Namespace
 
 import os
 import sys
+import json
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from mongodb_api import Waypoints
@@ -20,16 +21,19 @@ class WaypointInfo(Resource):
     '''
     전체 waypoint에 대한 정보
     '''
-    
+
     def get(self):
         print(waypoint_data.getWayPointList())
+        #for i in range(0, 100):
+        #    waypoint_data.delWaypoint(i)
         return {'result' : waypoint_data.getWayPointList()}
     
     def post(self):
-        latitude = request.json.get('latitude')
-        longitude = request.json.get('longitude')
-        
-        waypoint_data.addWaypoint(latitude=latitude, longitude=longitude)
+        data = request.data
+        json_data = json.loads(data)
+        print(data)
+        print(json_data)
+        waypoint_data.addWaypoint(latitude=json_data['latitude'], longitude=json_data['longitude'])
         
         return {'post' : 'success'}
 
