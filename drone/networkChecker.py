@@ -11,6 +11,21 @@ class networkChecker:
         self.server_ip_addr = ip_addr
         self.period = period
         self.keep_ping = True
+        self.test = True
+        
+    def test__false(self):
+        '''
+        항상 연결 실패
+        '''
+        
+        self.test = False
+    
+    def test__true(self):
+        '''
+        test 모드 종료
+        '''
+        
+        self.test = True
         
     async def ping(self):
         '''
@@ -28,10 +43,10 @@ class networkChecker:
                 # ping 결과 확인
                 if process.returncode == 0:  # ping 성공
                     print(f"{self.server_ip_addr} is reachable.")
-                    yield True
+                    yield (True and self.test)
                 else:  # ping 실패
                     f"{self.server_ip_addr} is not reachable."
-                    yield False
+                    yield (False and self.test)
 
                 # 대기 시간 설정
                 await asyncio.sleep(self.period)

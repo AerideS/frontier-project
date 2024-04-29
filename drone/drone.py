@@ -34,6 +34,8 @@ class NormalMode:
         self.base_mode = parent
         self.task_list = []
         
+        self.task_list.append(self.base_mode.processMessage()) # 메세지 수신 및 드론 동작
+        
     def __str__(self) -> str:
         return 'NORMAL_MODE'
 
@@ -60,6 +62,7 @@ class SeekMode:
         self.lidar_module = LidarModule__STUB() # 라이다 모듈 스텁
                 
         self.task_list.append(self.yoloModule())
+        self.task_list.append(self.base_mode.processMessage()) # 메세지 수신 및 드론 동작
         
         self.CAM_ANGLE = 63/2 # 라즈베리파이 캠의 화각
         self.CAM_WIDTH_PIXEL = 640
@@ -89,7 +92,7 @@ class SeekMode:
                 print(376)
                 await self.base_mode.vehicle.move_meters(x_dis, y_dis)
                 print(378)
-                self.changeMode(DROP_MODE)
+                await self.base_mode.changeMode(DROP_MODE)
                 print(380)
                 break
             
@@ -122,6 +125,9 @@ class DropMode:
             
         self.dropper = Dropper__STUB()
         self.lidar_module = LidarModule()
+        
+        self.task_list.append(self.dropRepeater())
+        self.task_list.append(self.base_mode.processMessage()) # 메세지 수신 및 드론 동작
 
     def __str__(self) -> str:
         return 'DROP_MODE'
@@ -130,35 +136,52 @@ class DropMode:
         '''
         todo : 지금 위치를 전달받아야 할까?
         '''
-        
+        print("DROP REPEATER --------")
         height = await self.lidar_module.getAltidude()
-        
+        print("GOT HEIGHT  ----------")
         await self.dropper.drop(height)
+        print("DROP COMPLETE --------")
+        await self.base_mode.changeMode(NORMAL_MODE)
           
 class ReturnMode:
     '''
     운용중 네트워크 단절에 따른 복귀모드
     이전의 위치 기록을 전달받아 해당 기록을 따라 이동
     '''
-    def __init__(self, parent) -> None:
+    def __init__(self, parent, prev_mode) -> None:
         self.base_mode = parent
         self.task_list = []
+        self.prev_mode = prev_mode
         
-        self.task_list.append(self.traceBack)()
+        self.base_mode.route_record_set = False
+        
+        self.task_list.append(self.traceBack())
         
         
     async def traceBack(self):
         '''
         이동 기록을 따라 이전 지점으로 이동해 나가는 것
         네트워크 복귀할때 까지
+        
+        "time" : datetime.now().timestamp(),
+        "latitude_deg" : position.latitude_deg,
+        "longitude_deg" : position.longitude_deg,
+        "absolute_altitude_m" : position.absolute_altitude_m,
+        "relative_altitude_m" : position.relative_altitude_m
         '''
         # todo 네트워크 복귀 후 지점 전송
-        for single_point in self.route_record:
-            lat, lon, alt = single_point
-            self.vehicle.goto(lat, lon, alt)
+        for single_point in self.base_mode.route_record:
+            lat = single_point["latitude_deg"]
+            lon = single_point["longitude_deg"]
+            alt = single_point["relative_altitude_m"]
+            print("get back to...", lat, lon, alt)
+            await self.base_mode.vehicle.goto(lat, lon, alt)
+            
             
         # loop 문 탈출한 경우에는 집 못찾은 것이므로 안전 고도로 상승하여
         # GCS 위치로 복귀함
+        self.base_mode.route_record_set = True
+        self.base_mode.changeMode(self.prev_mode)        
         
     def __str__(self) -> str:
         return 'RETURN_MODE'
@@ -212,15 +235,16 @@ class Drone:
         
         self.next_mode = None
         
+        self.route_record_set = True
+        
     async def initSystem(self):
         await self.vehicle.initConnect()
         
     def applyTask(self):
                 
         self.task_list.clear()        
-        self.task_list.append(self.processMessage()) # 메세지 수신 및 드론 동작
         self.task_list.append(self.checkNetwork())   # 네트워크 연결 확인
-        self.task_list.append(self.updateStatus())    # 기체의 상태 받아옴
+        self.task_list.append(self.updateStatus())    # 기체의 상태 받아옴 - 저장 및 서버 전송 
         self.task_list.append(self.userInteraction())
         
         for single_sub_task in self.cur_mode.task_list:
@@ -230,14 +254,34 @@ class Drone:
     
     async def userInteraction(self): 
         # todo : 모드 변경시 user interaction 2번 들어가는 문제가 있었는데 해결 필요
-        print_text = ""
+        print_text = "cmd>"
         while True:
             user_input = await asyncio.to_thread(input, print_text)
             
-            if user_input == 'MODE':
-                print(self.cur_mode)
+            if user_input[:4] == 'MODE':
+                if user_input == 'MODE NOR':
+                    print(self.cur_mode, '> NORMAL')
+                    self.changeMode(NORMAL_MODE)
+                elif user_input == 'MODE SEEK':
+                    print(self.cur_mode, '> SEEK')
+                    self.changeMode(SEEK_MODE)
+                elif user_input == 'MODE DROP':
+                    print(self.cur_mode, '> DROP')
+                    self.changeMode(DROP_MODE)
+                elif user_input == 'MODE RTN':
+                    print(self.cur_mode, '> RTN')
+                    self.changeMode(RETURN_MODE)
+                else:
+                    print(self.cur_mode)
+            elif user_input[:3] == 'NET':
+                if user_input == 'NET CUT':
+                    self.networkChecker.test__false()
+                elif user_input == 'NET CNT':
+                    self.networkChecker.test__true()
+            else:
+                print("cmd>")
                       
-    async def processMessage(self):
+    async def processMessage(self): # todo : 현재 상태가 이륙 상태가 아닐때 메세지 거부하기
         '''
         receiver에서 메세지를 받아 해석 후 mavsdk 명령 수행
         '''
@@ -248,13 +292,13 @@ class Drone:
                 print("not defined message")
                 continue
             await self.vehicle.waitForHold(single_message["type"])
-            print(single_message["type"])
+            print("GOT MESSAGE :", single_message["type"])
             if single_message["type"] == 'arm':
                 await self.vehicle.arm()
             elif single_message["type"] == 'takeoff':
                 await self.vehicle.takeoff()
             elif single_message["type"] == 'goto':
-                await self.vehicle. goto(single_message['latitude'], single_message['longitude'])
+                await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
             elif single_message["type"] == 'setElev':
                 await self.vehicle.setElev(single_message['altitude'])
             elif single_message["type"] == 'wait':
@@ -279,7 +323,8 @@ class Drone:
         기체의 상태 받아오기, 현재의 상태 저장과, 상태 전송에 사용됨
         '''
         async for velocity, battery, position in self.vehicle.getLocation():
-            print(velocity, battery, position, sep='\n')
+            # print(velocity, battery, position, sep='\n')
+            print("Status sent")
             if self.task_halt:
                 break
             self.recordRoute(position)
@@ -289,16 +334,17 @@ class Drone:
         '''
         드론의 현재 이동 위치를 저장
         '''
-        
-        single_data = {
-            "time" : datetime.now().timestamp(),
-            "latitude_deg" : position.latitude_deg,
-            "longitude_deg" : position.longitude_deg,
-            "absolute_altitude_m" : position.absolute_altitude_m,
-            "relative_altitude_m" : position.relative_altitude_m
-        }
-        
-        self.route_record.append(single_data)
+        if self.route_record_set:
+            single_data = {
+                "time" : datetime.now().timestamp(),
+                "latitude_deg" : position.latitude_deg,
+                "longitude_deg" : position.longitude_deg,
+                "absolute_altitude_m" : position.absolute_altitude_m,
+                "relative_altitude_m" : position.relative_altitude_m
+            }
+            # todo : 이전 기록과 비교하여 그렇게 차이나지 않는 경우에는 추가로 기록하지 않기
+            self.route_record.append(single_data)
+            print(self.route_record)
     
     async def sendStatus(self, velocity, battery, position):
         '''
@@ -342,15 +388,20 @@ class Drone:
         try:
             async for response in self.networkChecker.ping():
                 # print(response)
+                print(386, self.cur_mode, response)
                 if self.task_halt:
                     break
                 
-                if self.cur_mode == "RETURN_MODE":
+                if type(self.cur_mode) == ReturnMode:
+                    print(391)
                     if response == True:
-                        self.changeMode(self.cur_mode.prev_mode)
+                        print(393)
+                        await self.changeMode(self.cur_mode.prev_mode)
                 else:
+                    print(396)
                     if response == False:
-                        self.changeMode(RETURN_MODE)
+                        print(398)
+                        await self.changeMode(RETURN_MODE)
         except asyncio.CancelledError as err:
             print(err)
             
@@ -383,7 +434,7 @@ class Drone:
             self.cur_mode = NormalMode(self)
             
         print(377, self.cur_mode)
-        await self.start_task()       
+        await self.start()       
                
     async def stop_task(self):
         '''
@@ -405,36 +456,35 @@ class Drone:
         주요 기능 동작을 위함
         현재 mode에 맞는 task를 생성하고 실행
         '''
-            
-        self.applyTask()
-        print(388)
-        self.created_task_list.clear()
-        print(390)
-        self.task_halt = False
-        print(392)
+        
+        while True:
+            self.applyTask()
+            print(388)
+            self.created_task_list.clear()
+            print(390)
+            self.task_halt = False
+            print(392)
 
-        await self.initSystem()
-        print(407, end=": ")
-        print(task.get_name() for task in asyncio.all_tasks())
-        print(395)
-        for single_task in self.task_list:
-            print(148, single_task)
+            await self.initSystem()
+            print(407, end=": ")
+            print(task.get_name() for task in asyncio.all_tasks())
+            print(395)
+            for single_task in self.task_list:
+                print(148, single_task)
+                try:
+                    single_created_task = asyncio.ensure_future(single_task)
+                    print(170, type(single_created_task))
+                    self.created_task_list.append(single_created_task)
+                    
+                except ValueError as val_e:
+                    print(val_e)
             try:
-                single_created_task = asyncio.ensure_future(single_task)
-                print(170, type(single_created_task))
-                self.created_task_list.append(single_created_task)
-                
-            except ValueError as val_e:
-                print(val_e)
-        try:
-            print(413)
-            print(task.get_name() for task in asyncio.all_tasks())
-            await asyncio.wait(self.created_task_list)
-            print(415) # 왜 끝나지...?
-            print(asyncio.current_task().get_name())
-            print(task.get_name() for task in asyncio.all_tasks())
-        except KeyboardInterrupt:
-            await self.stop_task()
+                print(413)
+                print(task.get_name() for task in asyncio.all_tasks())
+                await asyncio.wait(self.created_task_list)
+                print(415) # 왜 끝나지...?
+            except KeyboardInterrupt:
+                await self.stop_task()
       
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='드론 작동을 위한 기본 정보')
