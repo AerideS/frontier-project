@@ -6,11 +6,14 @@
 
 from flask import Flask
 from flask_restx import Resource, Api
+from flask_cors import CORS
+
 # from todo import Todo
 from waypoint_data import Waypoint
 from device_data import Devices
 
 app = Flask(__name__)
+CORS(app)  # 모든 엔드포인트에 CORS를 활성화합니다.
 api = Api(
     app,
     version='0.1',
@@ -26,4 +29,4 @@ api.add_namespace(Devices, '/device')
 # api.add_namespace(Todo, '/todos')
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

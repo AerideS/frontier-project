@@ -1,14 +1,21 @@
 # app.py
 from flask import Flask, request, render_template
 from flask_cors import CORS
+import requests, json
 
 #Flask 객체 인스턴스 생성
 app = Flask(__name__)
 CORS(app)
 
+REST_IP = 'http://203.255.57.136:5001/waypoint'
+
 @app.route('/', methods=['GET', 'POST']) # 접속하는 url
 def index():
-  return render_template('main.html') 
+  f = open('credential.txt', 'r')
+  token = f.readline()
+  f.close()
+  print(token)
+  return render_template('main.html', token = token) 
 
 @app.route('/service', methods=['GET', 'POST'])
 def service():
@@ -16,14 +23,20 @@ def service():
     latitude = request.form['latitude']
     longitude = request.form['longitude']
     altitude = request.form['altitude']
-    print("latitude : " + latitude)
-    print("longitude : " + longitude)
-    print("altitude : " + altitude)
     return render_template('service.html') 
   except:
     data = request.json
+    print(data)
     new_point = data.get('newPoint')
     print('수신된 newPoint:', new_point)
+
+    # TO DO : REST API에 전송하기
+    payload = {'latitude' : new_point[0], 'longitude' : new_point[1]}
+    j_payload = json.dumps(payload)
+    print(j_payload)
+    response = requests.post(REST_IP, j_payload)
+    print(response)
+
     return render_template('service.html') 
     
 @app.route('/poc', methods=['GET', 'POST'])
