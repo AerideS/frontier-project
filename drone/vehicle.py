@@ -13,7 +13,7 @@ DRONE_SPEED = 2
 LOCATION_BEACON_PERIOD = 2
 
 # 근접 범위 지정
-MOVE_ACCURACY = 0.25
+MOVE_ACCURACY = 0.15
 
 ARRIVAL_CHECK_PERIOD = 0.5
 
@@ -108,6 +108,7 @@ class Vehicle:
         input
         output : 이동 결과
         '''
+        print("GOTO : ", target_lat, target_lon, target_alt)
         if target_alt is None:
             async for alt in self.drone_system.telemetry.altitude():
                 target_alt = alt.altitude_monotonic_m

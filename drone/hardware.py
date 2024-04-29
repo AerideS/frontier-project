@@ -8,8 +8,14 @@ class Dropper__STUB:
     def __init__(self) -> None:
         pass
     
-    async def drop(self):
-        await asyncio.sleep(5)
+    async def drop(self, height):
+        print("DROPPER!", height)
+        cnt = 0
+        while cnt < 6:     
+            print("dropping...")       
+            await asyncio.sleep(1)
+            cnt += 1
+        
         print("DROP COMPLETE")
         
 
@@ -20,8 +26,11 @@ class LidarModule:
     def __init__(self) -> None:
         pass
     
-    def getAltidude(self):
-        pass
+    async def getAltidude(self):
+        print("MEASURING HEIGHT...")
+        await asyncio.sleep(3)
+        print("MEASURED  HEIGHT...")
+        return 1999
     
     
     

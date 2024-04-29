@@ -4,7 +4,19 @@ import aio_pika
 import asyncio
 
 SERVER_IP = 'localhost'
+'''
+서버 주소 
+'''
 
+CONNECTION_CHECK_PERIOD = 3
+'''
+서버와의 연결 확인 주기
+'''
+
+RETRY_PERIOD = 3
+'''
+서버 접속 시도 실패시 재시도까지의 시간
+'''
 
 '''
     # todo : 전송하다가 뻑나는 경우 있음, 서버 연결 실패 등등
@@ -17,23 +29,60 @@ class MqReceiverAsync:
         self.server_ip = server_ip
         self.device_name = device_name
         self._keep_going = True
+        self.connected = False
+        self.connection = None
+        
+    async def initConnection(self):
+        '''
+        연결을 초기화하는 함수 
+        서버와 연결되지 않은 경우 발생할 수 있는 예외에 대한 처리 필요        
+        '''
+        while True:
+            try:
+                self.connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
+                self.channel = await self.connection.channel()
+                self.queue = await self.channel.declare_queue(name=self.device_name, durable=True)
+                
+                self.connected = True
+                break
+            except aio_pika.exceptions.AMQPConnectionError as err:
+                print(err, "error while checking connection to server")
+                await asyncio.sleep(RETRY_PERIOD)
+        
+    async def checkConnection(self):
+        try:
+            while True:
+                try:
+                    self.connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
+                    self.channel = await self.connection.channel()
+                    self.queue = await self.channel.declare_queue(name=self.device_name, durable=True)
+                    
+                    yield True # 연결이 확인되었을 때, 정상연결 될 때
+                except aio_pika.exceptions.AMQPConnectionError as err:
+                    print(err, "error while checking connection to server")
+                    yield False
+                
+                await asyncio.sleep(CONNECTION_CHECK_PERIOD)
+        except asyncio.CancelledError as err:
+            print(err, "connection check canceled")
+            
         
     async def getMessage(self):
         # RabbitMQ 연결 설정
-        connected = False
+        
         try:
-            connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
-            connected = True
-            print('connected', connected, self.server_ip)
-            async with connection:
+            self.connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
+            self.connected = True
+            print('connected', self.connected, self.server_ip)
+            async with self.connection:
                 # 채널 열기
-                channel = await connection.channel()
+                self.channel = await self.connection.channel()
                 print(31)
                 # 큐 선언
-                queue = await channel.declare_queue(name=self.device_name, durable=True)
+                self.queue = await self.channel.declare_queue(name=self.device_name, durable=True)
                 print(34)
                 # 메시지 받기
-                async for message in queue:
+                async for message in self.queue:
                     # if self._keep_going is False:
                     #     break
                     async with message.process():
@@ -43,8 +92,9 @@ class MqReceiverAsync:
             print(excpt)
                         
         finally:
-            if connected:
-                await connection.close()
+            if self.connected:
+                await self.connection.close()
+                self.connected = False
             
             
     async def stop(self):
@@ -77,7 +127,7 @@ class MqSenderAsync:
                     aio_pika.Message(body=message_body.encode()),  
                     routing_key=queue.name 
                 )
-                print("Message sent:", message_body, 'to', target)
+                print("Message sent:", 'to', target)
 
         finally:
             # 연결 종료
@@ -318,14 +368,18 @@ class MqSender:
 import time
 
 async def test_receiver_async():
-    # receiver = MqReceiverAsync('drone1', 'localhost')
-    # async for message in receiver.getMessage():
-    #     print(message)
-    pass
+    receiver = MqReceiverAsync('drone1', 'localhost')
+    async for message in receiver.getMessage():
+        print(message)
+    
+async def checkConnect():
+    receiver = MqReceiverAsync('drone1', 'localhost')
+    async for message in receiver.checkConnection():
+        print(message)
     
 #테스트용 함수!
 def test_receiver():
-    # asyncio.run(test_receiver_async)
+    # asyncio.run(test_receiver_async())
     receiver = MqReceiver('drone1', 'localhost')
     receiver.start()
 
@@ -346,12 +400,29 @@ def test_sender():
     # time.sleep(5)
     sender.arm()
     sender.takeoff(30)
+    sender.goto(35.15970, 128.082627)
+    
+    sender.goto(35.15970, 128.082540)
+    sender.goto(35.15970, 128.082550)
+    sender.goto(35.15970, 128.082560)
+    sender.goto(35.15970, 128.082570)
+    sender.goto(35.15970, 128.082580)
+    sender.goto(35.15970, 128.082590)
+    sender.goto(35.15970, 128.082600)
+    
+    sender.goto(35.15970, 128.082610)
+    sender.goto(35.15970, 128.082620)
+    sender.goto(35.15970, 128.082630)
+    sender.goto(35.15970, 128.082640)
+    sender.goto(35.15970, 128.082650)
+    
+
     # sender.wait(2)
     # sender.goto(35.15975, 128.082627)
     # sender.goto(35.15975, 128.082622)
     # sender.goto(35.15970, 128.082622)
     # sender.goto(35.15970, 128.082627)
-    sender.startDrop(35.15970, 128.082627)
+    # sender.startDrop(35.15970, 128.082627)
     # sender.land()
     
     # # time.sleep(10)
@@ -380,9 +451,9 @@ if __name__ == '__main__':
     TEST = 1
     if TEST == 1:
         # test_sender_receiver 함수를 쓰레드로 실행
-        threading.Thread(target=test_sender).start()
-        # threading.Thread(target=test_receiver).start()
-        
+        # threading.Thread(target=test_sender).start()
+        threading.Thread(target=test_receiver).start()
+        # asyncio.run(test_receiver_async())
     else:
         receiver = MqReceiver('drone1', 'localhost')
         receiver.start()
