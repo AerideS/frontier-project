@@ -43,6 +43,10 @@ def service():
 def poc():
   return render_template('poc_realtime_position.html')
 
+@app.route('/table', methods=['GET', 'POST'])
+def table():
+  return render_template('table_test.html')
+
 if __name__=="__main__":
   app.run(host="0.0.0.0", port="5000", debug=True)
   # host 등을 직접 지정하고 싶다면

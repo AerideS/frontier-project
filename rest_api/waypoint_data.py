@@ -21,10 +21,9 @@ class WaypointInfo(Resource):
     '''
     전체 waypoint에 대한 정보
     '''
-
     def get(self):
         print(waypoint_data.getWayPointList())
-        #for i in range(0, 100):
+        #for i in range(1,10):
         #    waypoint_data.delWaypoint(i)
         return {'result' : waypoint_data.getWayPointList()}
     
