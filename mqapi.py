@@ -41,6 +41,7 @@ class MqReceiverAsync:
             try:
                 self.connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
                 self.channel = await self.connection.channel()
+                await self.channel.queue_delete(queue_name=self.device_name)
                 self.queue = await self.channel.declare_queue(name=self.device_name, durable=True)
                 
                 self.connected = True
@@ -48,6 +49,8 @@ class MqReceiverAsync:
             except aio_pika.exceptions.AMQPConnectionError as err:
                 print(err, "error while checking connection to server")
                 await asyncio.sleep(RETRY_PERIOD)
+            finally:
+                await self.connection.close()
         
     async def checkConnection(self):
         try:
@@ -292,7 +295,6 @@ class MqSender:
 
         #exchange 선언
         self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='topic')
-        
     #메시지 전송 함수
     def send_message(self, message_type, data=None):
         #라우팅키 설정
@@ -369,6 +371,7 @@ import time
 
 async def test_receiver_async():
     receiver = MqReceiverAsync('drone1', 'localhost')
+    await receiver.initConnection()
     async for message in receiver.getMessage():
         print(message)
     
@@ -451,8 +454,9 @@ if __name__ == '__main__':
     TEST = 1
     if TEST == 1:
         # test_sender_receiver 함수를 쓰레드로 실행
-        # threading.Thread(target=test_sender).start()
-        threading.Thread(target=test_receiver).start()
+        # threading.Thread(target=test_receiver).start()
+        threading.Thread(target=test_sender).start()
+        
         # asyncio.run(test_receiver_async())
     else:
         receiver = MqReceiver('drone1', 'localhost')
