@@ -294,13 +294,17 @@ class MqSender:
         self.channel = self.connection.channel()
 
         #exchange 선언
-        self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='topic')
+        self.exchange =  self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='topic')
+        
+        self.channel.queue_bind(self.exchange_name, self.exchange_name)
+        
     #메시지 전송 함수
     def send_message(self, message_type, data=None):
         #라우팅키 설정
         routing_key = f"frontier.{message_type}"
         
         message = json.dumps(data)
+        
 
         #메시지 송신
         self.channel.basic_publish(exchange=self.exchange_name, routing_key=routing_key, body=message)
@@ -419,6 +423,34 @@ def test_sender():
     sender.goto(35.15970, 128.082640)
     sender.goto(35.15970, 128.082650)
     
+    sender.goto(35.15970, 128.082540)
+    sender.goto(35.15970, 128.082550)
+    sender.goto(35.15970, 128.082560)
+    sender.goto(35.15970, 128.082570)
+    sender.goto(35.15970, 128.082580)
+    sender.goto(35.15970, 128.082590)
+    sender.goto(35.15970, 128.082600)
+    
+    sender.goto(35.15970, 128.082610)
+    sender.goto(35.15970, 128.082620)
+    sender.goto(35.15970, 128.082630)
+    sender.goto(35.15970, 128.082640)
+    sender.goto(35.15970, 128.082650)
+    
+    sender.goto(35.15970, 128.082540)
+    sender.goto(35.15970, 128.082550)
+    sender.goto(35.15970, 128.082560)
+    sender.goto(35.15970, 128.082570)
+    sender.goto(35.15970, 128.082580)
+    sender.goto(35.15970, 128.082590)
+    sender.goto(35.15970, 128.082600)
+    
+    sender.goto(35.15970, 128.082610)
+    sender.goto(35.15970, 128.082620)
+    sender.goto(35.15970, 128.082630)
+    sender.goto(35.15970, 128.082640)
+    sender.goto(35.15970, 128.082650)
+    
 
     # sender.wait(2)
     # sender.goto(35.15975, 128.082627)
@@ -455,8 +487,8 @@ if __name__ == '__main__':
     if TEST == 1:
         # test_sender_receiver 함수를 쓰레드로 실행
         # threading.Thread(target=test_receiver).start()
-        threading.Thread(target=test_sender).start()
-        
+        # threading.Thread(target=test_sender).start()
+        test_sender()
         # asyncio.run(test_receiver_async())
     else:
         receiver = MqReceiver('drone1', 'localhost')
