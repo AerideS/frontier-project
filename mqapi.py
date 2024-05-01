@@ -296,7 +296,11 @@ class MqSender:
         #exchange 선언
         self.exchange =  self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='topic')
         
-        self.channel.queue_bind(self.exchange_name, self.exchange_name)
+        binding_keys = ["frontier.*"]
+
+        #바인딩
+        for binding_key in binding_keys:
+            self.channel.queue_bind(self.exchange_name, self.exchange_name, routing_key=binding_key)
         
     #메시지 전송 함수
     def send_message(self, message_type, data=None):
@@ -487,8 +491,8 @@ if __name__ == '__main__':
     if TEST == 1:
         # test_sender_receiver 함수를 쓰레드로 실행
         # threading.Thread(target=test_receiver).start()
-        # threading.Thread(target=test_sender).start()
-        test_sender()
+        threading.Thread(target=test_sender).start()
+        # test_sender()
         # asyncio.run(test_receiver_async())
     else:
         receiver = MqReceiver('drone1', 'localhost')
