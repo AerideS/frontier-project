@@ -41,6 +41,7 @@ class MqReceiverAsync:
             try:
                 self.connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
                 self.channel = await self.connection.channel()
+                await self.channel.queue_delete(queue_name=self.device_name)
                 self.queue = await self.channel.declare_queue(name=self.device_name, durable=True)
                 
                 self.connected = True
@@ -48,6 +49,8 @@ class MqReceiverAsync:
             except aio_pika.exceptions.AMQPConnectionError as err:
                 print(err, "error while checking connection to server")
                 await asyncio.sleep(RETRY_PERIOD)
+            finally:
+                await self.connection.close()
         
     async def checkConnection(self):
         try:
@@ -291,7 +294,9 @@ class MqSender:
         self.channel = self.connection.channel()
 
         #exchange 선언
-        self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='topic')
+        self.exchange =  self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='topic')
+        
+        self.channel.queue_bind(self.exchange_name, self.exchange_name)
         
     #메시지 전송 함수
     def send_message(self, message_type, data=None):
@@ -299,6 +304,7 @@ class MqSender:
         routing_key = f"frontier.{message_type}"
         
         message = json.dumps(data)
+        
 
         #메시지 송신
         self.channel.basic_publish(exchange=self.exchange_name, routing_key=routing_key, body=message)
@@ -369,6 +375,7 @@ import time
 
 async def test_receiver_async():
     receiver = MqReceiverAsync('drone1', 'localhost')
+    await receiver.initConnection()
     async for message in receiver.getMessage():
         print(message)
     
@@ -401,6 +408,34 @@ def test_sender():
     sender.arm()
     sender.takeoff(30)
     sender.goto(35.15970, 128.082627)
+    
+    sender.goto(35.15970, 128.082540)
+    sender.goto(35.15970, 128.082550)
+    sender.goto(35.15970, 128.082560)
+    sender.goto(35.15970, 128.082570)
+    sender.goto(35.15970, 128.082580)
+    sender.goto(35.15970, 128.082590)
+    sender.goto(35.15970, 128.082600)
+    
+    sender.goto(35.15970, 128.082610)
+    sender.goto(35.15970, 128.082620)
+    sender.goto(35.15970, 128.082630)
+    sender.goto(35.15970, 128.082640)
+    sender.goto(35.15970, 128.082650)
+    
+    sender.goto(35.15970, 128.082540)
+    sender.goto(35.15970, 128.082550)
+    sender.goto(35.15970, 128.082560)
+    sender.goto(35.15970, 128.082570)
+    sender.goto(35.15970, 128.082580)
+    sender.goto(35.15970, 128.082590)
+    sender.goto(35.15970, 128.082600)
+    
+    sender.goto(35.15970, 128.082610)
+    sender.goto(35.15970, 128.082620)
+    sender.goto(35.15970, 128.082630)
+    sender.goto(35.15970, 128.082640)
+    sender.goto(35.15970, 128.082650)
     
     sender.goto(35.15970, 128.082540)
     sender.goto(35.15970, 128.082550)
@@ -451,8 +486,9 @@ if __name__ == '__main__':
     TEST = 1
     if TEST == 1:
         # test_sender_receiver 함수를 쓰레드로 실행
+        # threading.Thread(target=test_receiver).start()
         # threading.Thread(target=test_sender).start()
-        threading.Thread(target=test_receiver).start()
+        test_sender()
         # asyncio.run(test_receiver_async())
     else:
         receiver = MqReceiver('drone1', 'localhost')

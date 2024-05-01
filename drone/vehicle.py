@@ -29,6 +29,10 @@ class Vehicle:
         while True:
             
             await asyncio.sleep(ARRIVAL_CHECK_PERIOD)
+            
+    async def check_armed(self):
+        async for is_armed in self.drone_system.telemetry.armed():
+            return is_armed
         
     async def waitForHold(self, cur_order):
         '''
@@ -109,6 +113,11 @@ class Vehicle:
         output : 이동 결과
         '''
         print("GOTO : ", target_lat, target_lon, target_alt)
+        
+        if await self.check_armed() is False:
+            print("unable to move when disarmed")
+            return
+        
         if target_alt is None:
             async for alt in self.drone_system.telemetry.altitude():
                 target_alt = alt.altitude_monotonic_m
@@ -170,8 +179,13 @@ class Vehicle:
     async def move_meters(self, north_distance, east_distance):
         original_position = None
         print('move_meters', north_distance, east_distance)
-        await asyncio.sleep(0.5)
+        if self.check_armed() is False:
+            print("unable to move when disarmed")
+            return
+        
+        await asyncio.sleep(0.5) # todo : 이거는 뭐임??
         # 현재 위치를 가져오는 코드
+ 
         print(174)
         async for position in self.drone_system.telemetry.position():
             if original_position is None:

@@ -25,6 +25,8 @@ RETURN_MODE = 4
 PING_PERIOD = 5
 DRONE_ADDRESS = 'udp://:14540'
 
+MINIMAL_RECORD_THREADHOLD = 0.1
+
     
 class NormalMode:
     '''
@@ -239,6 +241,7 @@ class Drone:
         
     async def initSystem(self):
         await self.vehicle.initConnect()
+        await self.receiver.initConnection()
         
     def applyTask(self):
                 
@@ -330,6 +333,28 @@ class Drone:
             self.recordRoute(position)
             await self.sendStatus(velocity, battery, position)
             
+    def getDistance(self, lat_1, lon_1, alt_1, lat_2, lon_2, alt_2):
+        # 지구의 반지름 (단위 : m)
+        R = 6371000
+        
+        # 위도 및 경도를 라디안 단위로 변환
+        lat1_rad = math.radians(lat_1)
+        lon1_rad = math.radians(lon_1)
+        lat2_rad = math.radians(lat_2)
+        lon2_rad = math.radians(lon_2)
+        # 위도 및 경도 간의 차이를 계산합니다.
+        delta_lat = lat2_rad - lat1_rad
+        delta_lon = lon2_rad - lon1_rad
+        # Haversine 공식을 사용하여 거리를 계산합니다.
+        a = math.sin(delta_lat / 2) ** 2 + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(delta_lon / 2) ** 2
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        # 거리를 계산합니다.
+        distance = R * c
+        # 고도 차이를 추가하여 거리를 계산합니다.
+        distance_with_altitude = math.sqrt(distance ** 2 + (alt_1 - alt_2) ** 2)
+        
+        return distance_with_altitude
+            
     def recordRoute(self, position):
         '''
         드론의 현재 이동 위치를 저장
@@ -342,9 +367,19 @@ class Drone:
                 "absolute_altitude_m" : position.absolute_altitude_m,
                 "relative_altitude_m" : position.relative_altitude_m
             }
+            if len(self.route_record) == 0:
+                self.route_record.append(single_data)
             # todo : 이전 기록과 비교하여 그렇게 차이나지 않는 경우에는 추가로 기록하지 않기
-            self.route_record.append(single_data)
-            print(self.route_record)
+            distance = self.getDistance(single_data["latitude_deg"], single_data["longitude_deg"], \
+                single_data['absolute_altitude_m'], \
+                self.route_record[-1]["latitude_deg"], self.route_record[-1]["longitude_deg"], \
+                    self.route_record[-1]["absolute_altitude_m"])
+            print(distance)
+            if distance > MINIMAL_RECORD_THREADHOLD:
+                self.route_record.append(single_data)
+                print('route recorded :', self.route_record)
+            else:
+                print("too close, pass recording")
     
     async def sendStatus(self, velocity, battery, position):
         '''
