@@ -23,7 +23,7 @@ class WaypointInfo(Resource):
     '''
     def get(self):
         print(waypoint_data.getWayPointList())
-        #for i in range(1,10):
+        #for i in range(1,100):
         #    waypoint_data.delWaypoint(i)
         return {'result' : waypoint_data.getWayPointList()}
     

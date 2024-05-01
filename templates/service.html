@@ -72,6 +72,56 @@
         pitch: 40
     });
 
+    
+    // 실시간 드론 위치 출력 
+    map.on('load', async () => {
+        const geojson = await getLocation();
+
+        map.addSource('drone', {
+            type: 'geojson',
+            data: geojson
+        });
+    
+        map.addLayer({
+            'id': 'drone',
+            'type': 'symbol',
+            'source': 'drone',
+            'layout': {
+                'icon-image': 'rocket'
+            }
+        });
+        const updateSource = setInterval(async () => {
+            const geojson = await getLocation(updateSource);
+            map.getSource('drone').setData(geojson);
+        }, 1000);
+
+        var position = [];
+        async function getLocation(updateSource) {
+                const response = await fetch(
+                    'http://203.255.57.136:5001/device/drone1',
+                    { method: 'GET'}
+                );
+
+            const data = await response.json();
+            position = data.result;
+            console.log(position);
+
+            return {
+                'type': 'FeatureCollection',
+                'features': [
+                    {
+                        'type': 'Feature',
+                        'geometry': {
+                            'type': 'Point',
+                            'coordinates': [position.longitude, position.latitude]
+                        }
+                    }
+                ]
+            };
+        }
+    });
+    
+
     // Waypoint 리스트 출력함수
     function renderTable() {
         const tableBody = document.querySelector('#waypointTable tbody');
@@ -151,7 +201,6 @@
         }
         renderTable()
     };
-
     fetchData();
 
     // 지도 클릭시 WP 추가 
@@ -185,105 +234,6 @@
         });
         location.reload();
     })
-
-    // San Francisco
-    const origin = [128.0928, 35.1544];
-
-    // Washington DC
-    const destination = [128.1046, 35.1532];
-
-    // A single point that animates along the route.
-    // Coordinates are initially set to origin.
-    const start = {
-        'type': 'FeatureCollection',
-        'features': [
-            {
-                'type': 'Feature',
-                'properties': {},
-                'geometry': {
-                    'type': 'Point',
-                    'coordinates': origin
-                }
-            }
-        ]
-    };
-
-    const end = {
-        'type': 'FeatureCollection',
-        'features': [
-            {
-                'type': 'Feature',
-                'properties': {},
-                'geometry': {
-                    'type': 'Point',
-                    'coordinates': destination
-                }
-            }
-        ]
-    };
-
-    map.on('load', () => {
-        map.addSource('start', {
-            'type': 'geojson',
-            'data': start
-        });
-
-        map.addSource('end', {
-            'type': 'geojson',
-            'data': end
-        })
-    });
-
-    function pointOnCircle(time) {
-        return {
-            'type': 'Point',
-            'coordinates': [origin[0] + time/30*(destination[0]-origin[0]), origin[1] +  time/30*(destination[1]-origin[1])]
-        };
-    }
-
-    map.on('load', () => {
-        // Add a source and layer displaying a point which will be animated in a circle.
-        map.addSource('point', {
-            'type': 'geojson',
-            'data': pointOnCircle(0)
-        });
-
-        map.addLayer({
-            'id': 'point',
-            'source': 'point',
-            'type': 'symbol',
-            'layout': {
-                // This icon is a part of the Mapbox Streets style.
-                // To view all images available in a Mapbox style, open
-                // the style in Mapbox Studio and click the "Images" tab.
-                // To add a new image to the style at runtime see
-                // https://docs.mapbox.com/mapbox-gl-js/example/add-image/
-                'icon-image': 'airport',
-                'icon-size': 1.5,
-                'icon-rotate': ['get', 'bearing'],
-                'icon-rotation-alignment': 'map',
-                'icon-allow-overlap': true,
-                'icon-ignore-placement': true
-            }
-        });
-
-        function animateMarker(timestamp) {
-            // Update the data to a new position based on the animation timestamp. The
-            // divisor in the expression `timestamp / 1000` controls the animation speed.
-            // 시간(초) 단위로 움직임. 5초동안 움직이는 코드임.
-            if(timestamp <= 20000) {
-              map.getSource('point').setData(pointOnCircle(timestamp / 1000));
-
-              // Request the next frame of the animation.
-              requestAnimationFrame(animateMarker);
-            }
-        }
-
-        // Start the animation.
-        animateMarker(0);
-      }
-    )
-
 </script>
 
 </body>

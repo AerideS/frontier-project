@@ -17,26 +17,34 @@ def index():
   print(token)
   return render_template('main.html', token = token) 
 
-@app.route('/service', methods=['GET', 'POST'])
-def service():
-  try:
-    latitude = request.form['latitude']
-    longitude = request.form['longitude']
-    altitude = request.form['altitude']
+@app.route('/service', methods=['GET'])
+def service_get():
+  latitude = request.args.get('latitude')
+  longitude = request.args.get('longitude')
+  altitude = request.args.get('altitude')
+
+  if (latitude == '' or longitude == '' or altitude == ''):
+    return render_template('main.html')
+  
+  try :
+    latitude = float(latitude)
+    longitude = float(longitude)
+    altitude = float(altitude)
     return render_template('service.html') 
-  except:
+  except :
+    return render_template('main.html')
+@app.route('/service', methods=['POST'])
+def service_post():
     data = request.json
     print(data)
     new_point = data.get('newPoint')
     print('수신된 newPoint:', new_point)
-
     # TO DO : REST API에 전송하기
     payload = {'latitude' : new_point[0], 'longitude' : new_point[1]}
     j_payload = json.dumps(payload)
     print(j_payload)
     response = requests.post(REST_IP, j_payload)
     print(response)
-
     return render_template('service.html') 
     
 @app.route('/poc', methods=['GET', 'POST'])
