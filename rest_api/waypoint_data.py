@@ -12,7 +12,7 @@ from mongodb_api import Waypoints
 waypoint_data = Waypoints()
 
 Waypoint  = Namespace(
-    name="Waypoint",
+    name="Waypoints",
     description="APIs for getting and updating data of Waypoints",
 )
 

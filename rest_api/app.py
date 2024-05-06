@@ -18,7 +18,7 @@ api = Api(
     app,
     version='0.1',
     title="frontier's API Server",
-    description="frontier's Todo API Server!",
+    description="frontier's REST API Server!",
     terms_url="/",
     contact="frontier@gmail.com",
     license="MIT"
