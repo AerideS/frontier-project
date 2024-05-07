@@ -121,7 +121,7 @@ class MqSenderAsync:
             async with connection:
                 # 채널에서 메시지를 보낼 큐 생성
                 channel = await connection.channel()
-                print(target)
+
                 queue = await channel.declare_queue(name=target, durable=True)
 
                 message_body = json.dumps(message)
@@ -412,6 +412,8 @@ def test_sender():
     sender.arm()
     sender.takeoff(30)
     sender.goto(35.15970, 128.082627)
+    
+    # sender.startDrop(35.15960, 128.082627)
     
     sender.goto(35.15970, 128.082540)
     sender.goto(35.15970, 128.082550)

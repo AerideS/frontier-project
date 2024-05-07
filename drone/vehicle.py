@@ -179,7 +179,7 @@ class Vehicle:
     async def move_meters(self, north_distance, east_distance):
         original_position = None
         print('move_meters', north_distance, east_distance)
-        if self.check_armed() is False:
+        if await self.check_armed() is False:
             print("unable to move when disarmed")
             return
         
@@ -202,7 +202,7 @@ class Vehicle:
             move_duration = diagonal_distance / DRONE_SPEED
 
             # 대기 시간 계산
-            wait_duration = move_duration
+            # wait_duration = move_duration
 
             new_lat = current_lat + (north_distance / 111111)
             new_lon = current_lon + (east_distance / (111111 * abs(cos(radians(current_lat)))))
