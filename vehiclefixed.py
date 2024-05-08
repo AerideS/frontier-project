@@ -87,7 +87,7 @@ class Vehicle:
         # await self.initConnect()
         await self.drone_system.action.arm()  # 드론 연결
 
-    async def takeoff(self, target_altitude):
+    async def takeoff(self, target_altitude=None):
         # await self.initConnect()
         print("-- 이륙 중")
         if self.takeoff_altitude != None:

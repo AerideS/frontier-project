@@ -245,7 +245,7 @@ async def main():
     system_address = 'udp://:14540'
     vehicle = Vehicle(system_address)
     await vehicle.initConnect()
-    await vehicle.land()
+    await vehicle.takeoff()
     # await vehicle.arm()
     # await asyncio.sleep(5)
     # await vehicle.takeoff()
