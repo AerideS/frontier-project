@@ -19,29 +19,41 @@ class MotorController:
 
         [메모]
             서보모터 PWM 주기 : 50Hz(=200ms)
-            duty cycle 3~7.5% : 시계방향 (5%일 때 high 신호가 1ms)
+            duty cycle 2.5~7.5% : 시계방향 (5%일 때 high 신호가 1ms)
             duty cycle 7.5%일 때 정지상태
-            duty cycle 7.5~12% : 반시계방향 (10%일 때 high 신호가 2ms)
+            duty cycle 7.5~12.5% : 반시계방향 (10%일 때 high 신호가 2ms)
 
-            duty cycle percent | RPM(-는 반시계 방향 의미함)
-                    3           100.1
-                    4           95.8
-                    5           82.3
-                    6           64.5
-                    7           22.9
-                    7.5         0
-                    8           -22.4
-                    9           -67.5
-                    10          -92.4
-                    11          -103.4
-                    12          -109.9
+            duty cycle percent  |  RPM(-는 반시계 방향 의미함)
+                    2.5             52.8
+                    3.5             52.8
+                    4.5             52.8
+                    5.5             47.5
+                    6.5             32.4
+                    7.5             0
+                    8.5             -38.2
+                    9.5             -46.8
+                    10.5            -52.8
+                    11.5            -52.8
+                    12.5            -52.8
+
+            측정 결과, 2.5~4.5 구간과 10.5~12.5 구간은 회전 속도의 차이가 없다.
+
+            풀리 지름 : 24.18 mm
+            기어비 : 2.667
+
+        [메서드]
+        1. __intit__(self, PWM_pin=33, period=50) : 초기 설정
+        2. rotate_cw(self, duty_cycle_percent, distance) : 시계방향 회전
+        3. rotate_ccw(self, duty_cycle_percent, distance) : 반시계 방향 회전
+        4. cal_time(self, distance, rpm=52.8) : 거리에 따른 회전 시간 계산
+        5. stop(self) : 모터 작동 중지
     '''
 
     def __init__(self, PWM_pin=33, period=50) -> None:
+        self.diameter = 24.18  # 풀리 지름
+        self.rpm = 52.8 * 2.667  # 풀리 rpm = 모터 rpm * 기어비
         self.PWM_pin = PWM_pin
-        self.diameter = 22 #풀리 지름
-        self.speed = 0 #풀리 선속도
-
+        
         #GPIO 채널 설정
         GPIO.setwarnings(False)
         GPIO.setmode(GPIO.BOARD)
@@ -50,38 +62,34 @@ class MotorController:
         #pwm 객체 생성
         self.pwm = GPIO.PWM(PWM_pin, period)
 
-        self.pwm.start(0)
-    
-    def cal_speed(self, duty_cycle_percent):
-        if duty_cycle_percent == 3:
-            # RPM을 라디안/초로 변환
-            angular_speed = 100 * 2 * math.pi / 60  # 1분에 2π 라디안이 1회전
-            # 선속도 계산
-            self.speed = self.diameter/2 * angular_speed #단위 : mm/2
-            self.speed = self.speed/1000 #단위 : m/s
+        self.pwm.start(7.5)
+
+    def rotate_cw(self, distance, duty_cycle_percent=2.5):
+        if duty_cycle_percent >= 2.5 and duty_cycle_percent < 7.5:
+            rotate_time = self.cal_time(distance)
+            self.pwm.ChangeDutyCycle(duty_cycle_percent)
+            time.sleep(rotate_time)
         else:
-            # RPM을 라디안/초로 변환
-            angular_speed = 103.4 * 2 * math.pi / 60  # 1분에 2π 라디안이 1회전
-            # 선속도 계산
-            self.speed = self.diameter/2 * angular_speed #단위 : mm/2
-            self.speed = self.speed/1000 #단위 : m/s
+            print('시계방향 회전을 위한 올바른 pwm값이 아님')
+
+    def rotate_ccw(self, distance, duty_cycle_percent=12.5):
+        if duty_cycle_percent > 7.5 and duty_cycle_percent <= 12.5:
+            rotate_time = self.cal_time(distance)
+            self.pwm.ChangeDutyCycle(duty_cycle_percent)
+            time.sleep(rotate_time)
+        else:
+            print('반시계방향 회전을 위한 올바른 pwm값이 아님')
 
     def cal_time(self, distance):
-        rotate_time = distance / self.speed
+        # 풀리 끝 선속도 계산
+        angular_speed = self.rpm * (2*math.pi)/60
+        self.linear_speed = self.diameter/2 * angular_speed *0.001 # 단위 : m/s
+
+        # 회전 시간 계산
+        rotate_time = distance / self.linear_speed
         print('걸리는 시간 : ', rotate_time)
+        
         return rotate_time
-
-    def rotate_cw(self, distance, duty_cycle_percent):
-        self.cal_speed(duty_cycle_percent)
-        rotate_time = self.cal_time(distance)
-        self.pwm.ChangeDutyCycle(duty_cycle_percent)
-        time.sleep(rotate_time)
-
-    def rotate_ccw(self, distance, duty_cycle_percent):
-        self.cal_speed(duty_cycle_percent)
-        rotate_time = self.cal_time(distance)
-        self.pwm.ChangeDutyCycle(duty_cycle_percent)
-        time.sleep(rotate_time)
 
     def stop(self):
         self.pwm.stop()
@@ -93,8 +101,7 @@ if __name__ == '__main__':
     TEST = 1
     if TEST == 1:
         motor=MotorController(33, 50)
-        motor.rotate_cw(1, 3)
-        motor.rotate_ccw(1, 11)
+        
         motor.stop()
     else:
         pass

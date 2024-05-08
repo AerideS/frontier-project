@@ -12,7 +12,7 @@ from mongodb_api import Waypoints
 waypoint_data = Waypoints()
 
 Waypoint  = Namespace(
-    name="Waypoint",
+    name="Waypoints",
     description="APIs for getting and updating data of Waypoints",
 )
 
@@ -23,7 +23,7 @@ class WaypointInfo(Resource):
     '''
     def get(self):
         print(waypoint_data.getWayPointList())
-        #for i in range(1,10):
+        #for i in range(1,100):
         #    waypoint_data.delWaypoint(i)
         return {'result' : waypoint_data.getWayPointList()}
     
