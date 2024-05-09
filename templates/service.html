@@ -22,18 +22,24 @@
 
     table {
         position: relative;
-        left: 1460px;
+        left: 1420px;
         border: 1px solid #ddd;
     }
 
     .waypointTable th, .waypointTable td {
-            border: 1px solid #ddd; 
-            padding: 8px;
-            text-align: left;
+        border: 1px solid #ddd; 
+        padding: 8px;
+        text-align: left;
     }
 
     .waypointTable tr:nth-child(even) {
         background-color: #f2f2f2;
+    }
+
+    #controlPanelForm {
+        position: relative;
+        left: 1420px;
+        top: 10px;
     }
 </style>
 </head>
@@ -61,6 +67,12 @@
 
     </tbody>
 </table>
+
+<form id="controlPanelForm" action="/submit" method="post">
+    <div id="controlPanel">
+        <button type="submit">명령 전송</button>
+    </div>
+</form>
 
 <script>
 	mapboxgl.accessToken = "pk.eyJ1IjoibGdoNjk2MyIsImEiOiJjbHRwaWJ5NXAwNjNpMmpwZmo0dzg5MmcyIn0.WRICTXvdHP46wiy2GmLJDw"
@@ -136,14 +148,38 @@
             const idCell = document.createElement('td');
             const latitudeCell = document.createElement('td'); 
             const longitudeCell = document.createElement('td');
+            const editButtonCell = document.createElement('td');
+            const deleteButtonCell = document.createElement('td'); 
+
             idCell.textContent = result[i]['waypoint_id'];
             latitudeCell.textContent = result[i]['latitude'];
             longitudeCell.textContent = result[i]['longitude'];
+
+            // 수정 버튼 생성, 로직 함수 생성
+            const editButton = document.createElement('button');
+            editButton.textContent = '수정';
+            editButton.addEventListener('click', function() {
+                
+            });
+            editButtonCell.appendChild(editButton);
+
+            // 삭제 버튼 생성, 로직 함수 생성
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '삭제';
+            deleteButton.addEventListener('click', function() {
+
+            })
+            deleteButtonCell.appendChild(deleteButton);
+
             row.appendChild(idCell);
             row.appendChild(latitudeCell);
             row.appendChild(longitudeCell);
+            row.appendChild(editButtonCell);
+            row.appendChild(deleteButtonCell);
+
             tableBody.appendChild(row); 
         }
+        const bottomButton = document.createElement('button');
     }
 
     // WP간 직선 그리는 함수
