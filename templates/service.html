@@ -72,7 +72,13 @@
         pitch: 40
     });
 
-    
+    markers = [];
+    var result = [];
+
+    // WP 경도, 위도 저장 하는 배열
+    var coordinates = [];
+
+
     // 실시간 드론 위치 출력 
     map.on('load', async () => {
         const geojson = await getLocation();
@@ -120,7 +126,7 @@
             };
         }
     });
-    
+
 
     // Waypoint 리스트 출력함수
     function renderTable() {
@@ -139,12 +145,6 @@
             tableBody.appendChild(row); 
         }
     }
-
-    markers = [];
-    var result = [];
-
-    // WP 경도, 위도 저장 하는 배열
-    var coordinates = [];
 
     // WP간 직선 그리는 함수
     function drawLine() {
@@ -209,7 +209,6 @@
         new mapboxgl.Marker() 
             .setLngLat(newPoint)
             .addTo(map);
-        alert("WP " + coordinates.length + " Setted");
         console.log(e.lngLat.lng);
 
         // newPoint 변수를 Flask로 보내기
