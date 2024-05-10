@@ -42,10 +42,10 @@ class LidarModule__STUB:
         pass
     
     async def getAltidude(self):
-        await asyncio.sleep(1)
-        
-        return_alt = random.randint(3, 8)
-        return return_alt
+        print("MEASURING HEIGHT...")
+        await asyncio.sleep(3)
+        print("MEASURED  HEIGHT...")
+        return 1999
         
 class RaspiCAM:
     '''

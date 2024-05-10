@@ -97,15 +97,13 @@ class Vehicle:
         # await self.initConnect()
         await self.drone_system.action.arm()  # 드론 연결
 
-    async def takeoff(self):
-        # await self.initConnect()
-        print("-- 이륙 중")
-        if self.takeoff_altitude != None:
-            pass
-        # self.takeoff_altitude = self.drone_system.action.get_takeoff_altitude()
-        await self.drone_system.action.takeoff()  # 드론 이륙
-        print('--takeoff complete')
-        # todo : 고도 줄 수 있도록 
+    async def takeoff(self, target_altitude=None):
+            # await self.initConnect()
+            print("-- 이륙 중, 고도 :", target_altitude)
+            if target_altitude != None:
+                await self.drone_system.action.set_takeoff_altitude(target_altitude)
+            await self.drone_system.action.takeoff()  # 드론 이륙
+            print('--takeoff complete')
 
     async def goto(self, target_lat, target_lon, target_alt=None):
         '''
@@ -245,7 +243,7 @@ async def main():
     system_address = 'udp://:14540'
     vehicle = Vehicle(system_address)
     await vehicle.initConnect()
-    await vehicle.takeoff()
+    await vehicle.takeoff(30)
     # await vehicle.arm()
     # await asyncio.sleep(5)
     # await vehicle.takeoff()

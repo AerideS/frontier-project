@@ -410,7 +410,7 @@ def test_sender():
     # sender = MqSender('localhost')
     # time.sleep(5)
     sender.arm()
-    sender.takeoff(30)
+    sender.takeoff(7)
     sender.goto(35.15970, 128.082627)
     
     # sender.startDrop(35.15960, 128.082627)

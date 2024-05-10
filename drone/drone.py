@@ -293,13 +293,17 @@ class Drone:
             if single_message["type"] == 'arm':
                 await self.vehicle.arm()
             elif single_message["type"] == 'takeoff':
-                await self.vehicle.takeoff()
+                if 'altitude' in single_message:
+                    await self.vehicle.takeoff(single_message['altitude'])
             elif single_message["type"] == 'goto':
-                await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
+                if ('latitude' in single_message) and ('longitude' in single_message):
+                    await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
             elif single_message["type"] == 'setElev':
-                await self.vehicle.setElev(single_message['altitude'])
+                if 'altitude' in single_message:
+                    await self.vehicle.setElev(single_message['altitude'])
             elif single_message["type"] == 'wait':
-                await self.vehicle.wait(single_message['time'])
+                if 'time' in single_message:
+                    await self.vehicle.wait(single_message['time'])
             elif single_message["type"] == 'land':
                 await self.vehicle.land()
             elif single_message["type"] == 'disarm':
@@ -446,6 +450,7 @@ class Drone:
         모드 변경
         기존 수행중인 task를 종료하고 새로운 객체 생성 후 실행
         '''
+        print(453, new_mode)
         for single_task in self.created_sub_task_list:
             self.task_halt = True
             single_task.cancel()
@@ -498,15 +503,15 @@ class Drone:
         return created_task_list
 
     async def clear_task(self):
-        for single_task in self.created_task_list:
-            print(single_task)
-            await single_task.cancel()
+        # for single_task in self.created_task_list:
+        #     print(single_task)
+        #     single_task.cancel()
         
-        self.created_task_list.clear()
+        # self.created_task_list.clear()
         
         for single_task in self.created_sub_task_list:
             print(single_task)
-            await single_task.cancel()
+            single_task.cancel()
             
         self.created_sub_task_list.clear()
 
