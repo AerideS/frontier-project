@@ -32,9 +32,8 @@ class DevicesInfoSpec(Resource):
             return {'result' : data}
 
     def put(self, device_id):
-        # latitude = 
-        # longitude = 
-        # altitude =
-        # device_data.update_device_data(device_id, longitude, latitude, altitude)
+        data = request.json
+        print(data)
+        device_data.update_device_data(device_id, data['longitude'], data['latitude'], data['altitude'])
         
         return {'put' : 'success'}

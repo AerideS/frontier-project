@@ -7,7 +7,8 @@ import requests, json
 app = Flask(__name__)
 CORS(app)
 
-REST_IP = 'http://203.255.57.136:5001/waypoint'
+REST_IP_DEVICE = 'http://203.255.57.136:5001/device'
+REST_IP_WAYPOINT = 'http://203.255.57.136:5001/waypoint'
 
 @app.route('/', methods=['GET', 'POST']) # 접속하는 url
 def index():
@@ -30,6 +31,12 @@ def service_get():
     latitude = float(latitude)
     longitude = float(longitude)
     altitude = float(altitude)
+
+    payload = {'deviceID': 'MASTER', 'latitude': latitude, 'longitude' : longitude, 'altitude' : altitude}
+    print(payload)
+    response = requests.put(REST_IP_DEVICE + '/MASTER', json=payload)
+    #print(response)
+
     return render_template('service.html') 
   except :
     return render_template('main.html')
@@ -43,7 +50,7 @@ def service_post():
     payload = {'latitude' : new_point[0], 'longitude' : new_point[1]}
     j_payload = json.dumps(payload)
     print(j_payload)
-    response = requests.post(REST_IP, j_payload)
+    response = requests.post(REST_IP_WAYPOINT, j_payload)
     print(response)
     return render_template('service.html') 
     
