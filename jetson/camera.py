@@ -1,5 +1,6 @@
 import os
 import cv2
+from datetime import datetime
 
 class CameraCapture:
     def __init__(self, save_directory='/home/jetson/Pictures/PiCamera_images'):
@@ -24,13 +25,16 @@ class CameraCapture:
             exit()
         return camera
 
-    def save_image(self, filename='captured_image.jpg'):
+    def save_image(self):
         ret, frame = self.camera.read()
         if not ret:
             print("비디오 스트림을 읽을 수 없습니다.")
             return
         
-        image_path = os.path.join(self.save_directory, filename)
+        # 현재 시간을 기반으로 파일 이름 생성
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.filename = f"captured_image_{current_time}.jpg"
+        image_path = os.path.join(self.save_directory, self.filename)
         cv2.imwrite(image_path, frame)
         print("이미지가 저장되었습니다:", image_path)
 
