@@ -79,19 +79,15 @@ class Waypoints:
             self.collection.replace_one({"data.waypoint_id": waypoint_id2}, waypoint2)
     
     def addWaypoint(self, latitude, longitude):
-        '''
-        DB에 waypoint 추가
-        기존에 존재하는 경우에도 ID만 다르게 하여 추가할 수 있음
-        추가후 waypoint_num의 개수를 1 증가시킴
-        '''
-        new_waypoint_id = self.waypoint_num + 1
+        max_id = self.collection.find_one(sort=[("waypoint_id", -1)])  # 현재 가장 큰 waypoint_id를 찾음
+        new_waypoint_id = 1 if not max_id else max_id["waypoint_id"] + 1  # 가장 큰 waypoint_id보다 1 큰 값으로 설정
+        
         new_waypoint = {
             "waypoint_id": new_waypoint_id,
             "latitude": latitude,
             "longitude": longitude
         }
         self.collection.insert_one(new_waypoint)
-        self.waypoint_num += 1
     
     def updateWaypoint(self, waypoint_id, latitude, longitude):
         '''
