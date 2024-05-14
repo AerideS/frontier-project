@@ -43,10 +43,10 @@ class networkChecker:
                 # ping 결과 확인
                 if process.returncode == 0:  # ping 성공
                     print(f"{self.server_ip_addr} is reachable.")
-                    yield (True and self.test)
+                    yield (True and (self.test))
                 else:  # ping 실패
-                    f"{self.server_ip_addr} is not reachable."
-                    yield (False and self.test)
+                    print(f"{self.server_ip_addr} is not reachable.")
+                    yield (False and (self.test))
 
                 # 대기 시간 설정
                 await asyncio.sleep(self.period)
