@@ -192,7 +192,7 @@ class TerrainData:
         return None
 
 if __name__ == '__main__':
-    # drone_data = DroneData()
+    drone_data = DroneData()
     # drone_data.add_device_data('drone1', 40.7128, -74.0060, 100)
     # drone_data.add_device_data('drone2', 40.7128, -74.0060, 150)
     # drone_data.add_device_data('drone3', 34.0522, -118.2437, 150)
