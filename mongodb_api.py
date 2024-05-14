@@ -18,7 +18,7 @@ class Waypoints:
     
     def __init__(self) -> None:
         client = MongoClient('mongodb://203.255.57.122:27018/')
-        self.db = client['waypoint']
+        self.db = client['waypointtest']
         self.collection = self.db['waypoints']
         self.waypoint_num = 0 # waypoint의 개수
         
@@ -64,35 +64,32 @@ class Waypoints:
         '''
         waypoint1 = self.collection.find_one({"waypoint_id": waypoint_id1})
         waypoint2 = self.collection.find_one({"waypoint_id": waypoint_id2})
-        
+    
         if waypoint1 and waypoint2:
             temp_latitude = waypoint1["latitude"]
             temp_longitude = waypoint1["longitude"]
-            
+
             waypoint1["latitude"] = waypoint2["latitude"]
             waypoint1["longitude"] = waypoint2["longitude"]
-            
-            waypoint2["latitude"] = temp_latitude
-            waypoint1["longitude"] = temp_longitude          
 
-            self.collection.replace_one({"data.waypoint_id": waypoint_id1}, waypoint1)
-            self.collection.replace_one({"data.waypoint_id": waypoint_id2}, waypoint2)
+            waypoint2["latitude"] = temp_latitude
+            waypoint2["longitude"] = temp_longitude          
+
+            self.collection.replace_one({"waypoint_id": waypoint_id1}, waypoint1)
+            self.collection.replace_one({"waypoint_id": waypoint_id2}, waypoint2)
+
     
     def addWaypoint(self, latitude, longitude):
-        '''
-        DB에 waypoint 추가
-        기존에 존재하는 경우에도 ID만 다르게 하여 추가할 수 있음
-        추가후 waypoint_num의 개수를 1 증가시킴
-        '''
-        new_waypoint_id = self.waypoint_num + 1
+        max_id = self.collection.find_one(sort=[("waypoint_id", -1)])  # 현재 가장 큰 waypoint_id를 찾음
+        new_waypoint_id = 1 if not max_id else max_id["waypoint_id"] + 1  # 가장 큰 waypoint_id보다 1 큰 값으로 설정
+        
         new_waypoint = {
             "waypoint_id": new_waypoint_id,
             "latitude": latitude,
             "longitude": longitude
         }
         self.collection.insert_one(new_waypoint)
-        self.waypoint_num += 1
-    
+        
     def updateWaypoint(self, waypoint_id, latitude, longitude):
         '''
         기존에 존재하는 waypoint의 위도, 경도 정보 갱신
@@ -122,7 +119,7 @@ class Waypoints:
         
 class DroneData:
     def __init__(self) -> None:
-        client = MongoClient('mongodb://203.255.57.122:27018/')
+        client = MongoClient('mongodb://localhost:27017/')
         self.db = client['drone_data1']
 
     def add_device_data(self, drone_id, longitude, latitude, altitude):
@@ -203,24 +200,24 @@ if __name__ == '__main__':
     # print(drone_data.get_device_data('drone1'))
     # print(drone_data.get_device_data('drone2'))
     # print(drone_data.get_device_data('drone3'))
-    waypoint = Waypoints()
-    waypoint.clearWaypoint()
-    waypoint.addWaypoint(111.111, 222.222)
-    waypoint.addWaypoint(111.111, 222.222)
-    waypoint.addWaypoint(222.222, 333.333)
-    print('getWaypointIDList :', waypoint.getWaypointIDList())
-    print('getWayPointList :', waypoint.getWayPointList())
-    print('getWaypoint(1) :', waypoint.getWaypoint(1))
-    waypoint.switchWayPoints(1,2)
-    print('switchWayPoints(1,2):', waypoint.getWayPointList())
-    waypoint.updateWaypoint(1, 444.444, 555.555)
-    print('updateWaypoint(1, 444.444, 555.555):', waypoint.getWayPointList())
-    waypoint.delWaypoint(1)
-    print('delWaypoint(1) :', waypoint.getWayPointList())
-    waypoint.clearWaypoint()
-    print('clearWaypoint() :', waypoint.getWayPointList())
-    waypoint.addWaypoint(111.111, 222.222)
-    waypoint.addWaypoint(111.111, 222.222)
-    waypoint.addWaypoint(222.222, 333.333)
+    # waypoint = Waypoints()
+    # waypoint.clearWaypoint()
+    # waypoint.addWaypoint(111.111, 222.222)
+    # waypoint.addWaypoint(222.222, 222.222)
+    # waypoint.addWaypoint(222.222, 333.333)
+    # print('getWaypointIDList :', waypoint.getWaypointIDList())
+    # print('getWayPointList :', waypoint.getWayPointList())
+    # print('getWaypoint(3) :', waypoint.getWaypoint(3))
+    # waypoint.switchWayPoints(3,4)
+    # print('switchWayPoints(1,2):', waypoint.getWayPointList())
+    # waypoint.updateWaypoint(1, 444.444, 555.555)
+    # print('updateWaypoint(1, 444.444, 555.555):', waypoint.getWayPointList())
+    # waypoint.delWaypoint(1)
+    # print('delWaypoint(1) :', waypoint.getWayPointList())
+    # waypoint.clearWaypoint()
+    # print('clearWaypoint() :', waypoint.getWayPointList())
+    # waypoint.addWaypoint(111.111, 222.222)
+    # waypoint.addWaypoint(111.111, 222.222)
+    # waypoint.addWaypoint(222.222, 333.333)
     
     # print(waypoint.getWayPointList())

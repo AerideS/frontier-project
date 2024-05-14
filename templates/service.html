@@ -90,7 +90,6 @@
     // WP 경도, 위도 저장 하는 배열
     var coordinates = [];
 
-
     // 실시간 드론 위치 출력 
     map.on('load', async () => {
         const geojson = await getLocation();
@@ -139,108 +138,8 @@
         }
     });
 
-
-    // Waypoint 리스트 출력함수
-    function renderTable() {
-        const tableBody = document.querySelector('#waypointTable tbody');
-        for(var i = 0; i < result.length; i++) {
-            const row = document.createElement('tr');
-            const idCell = document.createElement('td');
-            const latitudeCell = document.createElement('td'); 
-            const longitudeCell = document.createElement('td');
-            const editButtonCell = document.createElement('td');
-            const deleteButtonCell = document.createElement('td'); 
-
-            idCell.textContent = result[i]['waypoint_id'];
-            latitudeCell.textContent = result[i]['latitude'];
-            longitudeCell.textContent = result[i]['longitude'];
-
-            // 수정 버튼 생성, 로직 함수 생성
-            const editButton = document.createElement('button');
-            editButton.textContent = '수정';
-            editButton.addEventListener('click', function() {
-                
-            });
-            editButtonCell.appendChild(editButton);
-
-            // 삭제 버튼 생성, 로직 함수 생성
-            const deleteButton = document.createElement('button');
-            deleteButton.textContent = '삭제';
-            deleteButton.addEventListener('click', function() {
-
-            })
-            deleteButtonCell.appendChild(deleteButton);
-
-            row.appendChild(idCell);
-            row.appendChild(latitudeCell);
-            row.appendChild(longitudeCell);
-            row.appendChild(editButtonCell);
-            row.appendChild(deleteButtonCell);
-
-            tableBody.appendChild(row); 
-        }
-        const bottomButton = document.createElement('button');
-    }
-
-    // WP간 직선 그리는 함수
-    function drawLine() {
-        map.on('load', () => {
-        map.addSource('route', {
-                    'type' : 'geojson',
-                    'data' : {
-                        'type' : 'Feature',
-                        'properties' : {},
-                        'geometry': {
-                            'type' : 'LineString',
-                            'coordinates' : coordinates
-                        }
-                    }
-                });
-
-        map.addLayer({
-            'id' : 'route',
-            'type' : 'line',
-            'source' : 'route',
-            'layout' : {
-                    'line-join' : 'round',
-                    'line-cap' : 'round'
-            },
-            'paint' : {
-                'line-color' : '#888',
-                'line-width' : 8              
-            }
-        });
-    })
-    }
-    
-    // REST API를 통해 WP 위치 가져오는 함수
-    const fetchData = async () => {
-        try {
-            markers = [];
-            coordinates = [];
-            const response = await fetch(
-                'http://203.255.57.136:5001/waypoint',
-                { method: 'GET' }
-            );
-            const data = await response.json();
-            result = data.result;
-            for(var i = 0; i < result.length; i++) {
-                newPoint = [result[i].latitude, result[i].longitude];
-                coordinates.push(newPoint);
-                new mapboxgl.Marker() // Correct method name
-                    .setLngLat(newPoint)
-                    .addTo(map);
-            }
-            drawLine();
-        } catch (error) {
-            console.error('Error fetching data:', error);
-        }
-        renderTable()
-    };
-    fetchData();
-
-    // 지도 클릭시 WP 추가 
-    map.on('click', (e) => {
+        // 지도 클릭시 WP 추가 
+        map.on('dblclick', (e) => {
         newPoint = [e.lngLat.lng, e.lngLat.lat];
         new mapboxgl.Marker() 
             .setLngLat(newPoint)
@@ -269,6 +168,128 @@
         });
         location.reload();
     })
+
+    
+    // Waypoint 리스트 출력함수
+    function renderTable() {
+        const tableBody = document.querySelector('#waypointTable tbody');
+        for(var i = 0; i < result.length; i++) {
+            const row = document.createElement('tr');
+            const idCell = document.createElement('td');
+            const latitudeCell = document.createElement('td'); 
+            const longitudeCell = document.createElement('td');
+            const editButtonCell = document.createElement('td');
+            const deleteButtonCell = document.createElement('td'); 
+
+            idCell.textContent = result[i]['waypoint_id'];
+            latitudeCell.textContent = result[i]['latitude'];
+            longitudeCell.textContent = result[i]['longitude'];
+
+            // 수정 버튼 생성, 로직 함수 생성
+            /*
+                사용 시나리오
+                1. 사용자가 원하는 ID의 WP 행에서 수정 버튼을 누른다.
+                2. 사용자가 지도에서 새롭게 원하는 지점을 선택한다.
+                3. 해당 정보가 반영된다.
+            */
+            const editButton = document.createElement('button');
+
+            async function editWP(e) {
+                data = [idCell.textContent, e.lngLat.lng, e.lngLat.lat];
+                    const payload = { data: data };
+                    fetch('http://203.255.57.136:5000/editWP', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(data)
+                    })
+                    map.on('mouseup', (e) => {
+                        location.reload();
+                    })
+            }
+
+            editButton.textContent = '수정';
+            editButton.addEventListener('click', function() {
+                map.on('mousedown', (e) => editWP(e))
+            });
+            editButtonCell.appendChild(editButton);
+
+            // 삭제 버튼 생성, 로직 함수 생성
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = '삭제';
+            deleteButton.addEventListener('click', function() {
+                alert("DELETE" + idCell.textContent);
+            })
+            deleteButtonCell.appendChild(deleteButton);
+
+            row.appendChild(idCell);
+            row.appendChild(latitudeCell);
+            row.appendChild(longitudeCell);
+            row.appendChild(editButtonCell);
+            row.appendChild(deleteButtonCell);
+
+            tableBody.appendChild(row); 
+        }
+        const bottomButton = document.createElement('button');
+    }
+
+    // WP간 직선 그리는 함수
+        function drawLine() {
+            map.on('load', () => {
+            map.addSource('route', {
+                        'type' : 'geojson',
+                        'data' : {
+                            'type' : 'Feature',
+                            'properties' : {},
+                            'geometry': {
+                                'type' : 'LineString',
+                                'coordinates' : coordinates
+                            }
+                        }
+                    });
+
+            map.addLayer({
+                'id' : 'route',
+                'type' : 'line',
+                'source' : 'route',
+                'layout' : {
+                        'line-join' : 'round',
+                        'line-cap' : 'round'
+                },
+                'paint' : {
+                    'line-color' : '#888',
+                    'line-width' : 8              
+                }
+            });
+        })
+        }
+    
+    // REST API를 통해 WP 위치 가져오는 함수
+    const fetchData = async () => {
+        try {
+            markers = [];
+            coordinates = [];
+            const response = await fetch(
+                'http://203.255.57.136:5001/waypoint',
+                { method: 'GET' }
+            );
+            const data = await response.json();
+            result = data.result;
+            for(var i = 0; i < result.length; i++) {
+                newPoint = [result[i].latitude, result[i].longitude];
+                coordinates.push(newPoint);
+                new mapboxgl.Marker() // Correct method name
+                    .setLngLat(newPoint)
+                    .addTo(map);
+            }
+            drawLine();
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        }
+        renderTable()
+    };
+    fetchData();
 </script>
 
 </body>

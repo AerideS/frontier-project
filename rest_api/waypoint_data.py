@@ -23,8 +23,8 @@ class WaypointInfo(Resource):
     '''
     def get(self):
         print(waypoint_data.getWayPointList())
-        #for i in range(1,100):
-        #    waypoint_data.delWaypoint(i)
+#        for i in range(-100, 300):
+#            waypoint_data.delWaypoint(i)
         return {'result' : waypoint_data.getWayPointList()}
     
     def post(self):
@@ -43,14 +43,18 @@ class WaypointInfoSpec(Resource):
         if data is not None:
             return {'result' : data}
 
+    # 웨이포인트 수정
     def put(self, waypoint_id):
-        
-        latitude = request.json.get('latitude')
-        longitude = request.json.get('longitude')
-        
-        waypoint_data.updateWaypoint(waypoint_id=waypoint_id, \
-            latitude=latitude, longitude=longitude)
-        
+        data = request.json
+        id = int(data[0])
+        latitude = data[1]
+        longitude = data[2]
+
+        print(latitude, longitude)
+        print('=============')
+        print(data)
+
+        waypoint_data.updateWaypoint(int(id), float(latitude), float(longitude))
         return {'put' : 'success'}
         
     def delete(self, waypoint_id):

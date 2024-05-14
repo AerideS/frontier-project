@@ -53,6 +53,14 @@ def service_post():
     response = requests.post(REST_IP_WAYPOINT, j_payload)
     print(response)
     return render_template('service.html') 
+
+@app.route('/editWP', methods=['POST'])
+def edit_waypoint():
+  # waypoint ID, longitude, latitude 
+  data = request.json
+  print(data[0])
+  response = requests.put(REST_IP_WAYPOINT + '/' + str(data[0]), json=data)
+  return render_template('service.html')
     
 @app.route('/poc', methods=['GET', 'POST'])
 def poc():
