@@ -9,12 +9,11 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setup(relay_pin, GPIO.OUT)
 
 def cut_string()
-        # 릴레이를 켬
-        GPIO.output(relay_pin, GPIO.HIGH)
-        print("릴레이 켬")
-        time.sleep(10)
-        GPIO.output(relay_pin, GPIO.LOW)
-        print("릴레이 켬")
+    GPIO.output(relay_pin, GPIO.HIGH)
+    print("릴레이 켬")
+    time.sleep(5)
+    GPIO.output(relay_pin, GPIO.LOW)
+    print("릴레이 끔")
         
 
 if __name__ == '__main__':
