@@ -1,25 +1,27 @@
 import Jetson.GPIO as GPIO
 import time
 
-# GPIO 핀 번호 설정
-relay_pin = 12  # 이 부분은 사용하는 GPIO 핀 번호에 맞게 변경하세요.
+class RelayModule:
+    def __init__(self) -> None:
+        self.relay_pin = 12
 
-# GPIO 설정
-GPIO.setmode(GPIO.BOARD)
-GPIO.setup(relay_pin, GPIO.OUT)
+        # GPIO 설정
+        GPIO.setmode(GPIO.BOARD)
+        GPIO.setup(self.relay_pin, GPIO.OUT)
 
-def cut_string()
-    GPIO.output(relay_pin, GPIO.HIGH)
-    print("릴레이 켬")
-    time.sleep(5)
-    GPIO.output(relay_pin, GPIO.LOW)
-    print("릴레이 끔")
+    def cut_string(self):
+        GPIO.output(self.relay_pin, GPIO.HIGH)
+        print("5초간 릴레이 켬")
+        time.sleep(5)
+        GPIO.output(self.relay_pin, GPIO.LOW)
+        print("릴레이 끔")
         
 
 if __name__ == '__main__':
      # 테스트 수행
     TEST = 1
     if TEST == 1:
-        cut_string()
+        relay_module = RelayModule()
+        relay_module.cut_string()
     else:
         pass
