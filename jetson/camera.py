@@ -2,13 +2,13 @@ import os
 import cv2
 from datetime import datetime
 
-class CamModule:
+class RaspiCAM:
     def __init__(self, save_directory='/home/jetson/Pictures/PiCamera_images'):
         self.save_directory = save_directory
         os.makedirs(save_directory, exist_ok=True)
-        self.camera = self.initialize_camera()
+        self.camera = self.init_CAM()
 
-    def initialize_camera(self):
+    def init_CAM(self):
         width = 1920
         height = 1080
         gst_str = ('nvarguscamerasrc sensor_id=0 wbmode=3 ! ' + 
@@ -30,6 +30,7 @@ class CamModule:
         if not ret:
             print("비디오 스트림을 읽을 수 없습니다.")
             return
+        print('이미지 가져옴.')
         return frame
     
     def savePicture(self):
@@ -45,7 +46,7 @@ class CamModule:
         print("이미지가 저장되었습니다:", image_path)
 
     #이건 걍 넣었음
-    def displayCam(self):
+    def displayCAM(self):
         while True:
             ret, frame = self.camera.read()
             if not ret:
@@ -65,5 +66,6 @@ class CamModule:
 
 # 사용 예시
 if __name__ == "__main__":
-    cam_module = CamModule()
-    cam_module.save_image()
+    cam_module = RaspiCAM()
+    cam_module.getPicture()
+    cam_module.savePicture()
