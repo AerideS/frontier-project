@@ -9,7 +9,7 @@ class Waypoints:
     "waypoint" : [
         {
             "waypoint_id" : 1,
-            "Type" : move or drop
+            "type" : move or drop
             "latitude" : 35.12445,
             "longitude" : 126.12345
         }
