@@ -19,7 +19,7 @@ class Waypoints:
     
     def __init__(self) -> None:
         client = MongoClient('mongodb://203.255.57.122:27018/')
-        self.db = client['waypointtest']
+        self.db = client['waypoint']
         self.collection = self.db['waypoints']
         self.waypoint_num = 0 # waypoint의 개수
         
@@ -138,8 +138,8 @@ class Waypoints:
         
 class DroneData:
     def __init__(self) -> None:
-        client = MongoClient('mongodb://localhost:27017/')
-        self.db = client['drone_data1test']
+        client = MongoClient('mongodb://203.255.57.122:27018/')
+        self.db = client['drone_data1']
 
     def add_device_data(self, drone_id, longitude, latitude, altitude):
         collection_name = 'drone_data'
@@ -174,8 +174,8 @@ class DroneData:
 
 class TerrainData:
     def __init__(self) -> None:
-        client = MongoClient('mongodb://localhost:27017/')
-        self.db = client['terrain_datatest']
+        client = MongoClient('mongodb://203.255.57.122:27018/')
+        self.db = client['terrain_data']
         self.collection_name = "terrain_data"
         self.collection = self.db[self.collection_name]
 
