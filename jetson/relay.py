@@ -3,18 +3,21 @@ import time
 
 class RelayModule:
     def __init__(self) -> None:
-        self.relay_pin = 12
+        self.relay_pin = 16
 
         # GPIO 설정
         GPIO.setmode(GPIO.BOARD)
         GPIO.setup(self.relay_pin, GPIO.OUT)
 
     def cut_string(self):
-        GPIO.output(self.relay_pin, GPIO.HIGH)
-        print("5초간 릴레이 켬")
-        time.sleep(5)
-        GPIO.output(self.relay_pin, GPIO.LOW)
-        print("릴레이 끔")
+        try:
+            GPIO.output(self.relay_pin, GPIO.HIGH)
+            print("5초간 릴레이 켬")
+            time.sleep(5)
+            GPIO.output(self.relay_pin, GPIO.LOW)
+            print("릴레이 끔")
+        finally:
+            GPIO.cleanup()
         
 
 if __name__ == '__main__':
