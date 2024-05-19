@@ -248,7 +248,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                         result.append(group)
 
     print(result)
-    visualize_groups(result)
+    # visualize_groups(result)
     return result
   
 if __name__ == '__main__':

@@ -81,7 +81,7 @@ class CrawltoImage:
             
 
 class FileToAlt:
-    def __init__(self, directory = './elevation_file/elevation_file/') -> None:
+    def __init__(self, directory = './elevation_file/') -> None:
         self.range = []
         self.directory = directory
         self.dir = directory
@@ -102,7 +102,7 @@ class FileToAlt:
             if self.checkFileName(single_file):
                 self.alt_files.append(single_file)
 
-        print(self.alt_files)
+        # print(self.alt_files)
         
     def checkFileName(self, file_name):
         if file_name[:15] != 'elevation_file_':
@@ -118,7 +118,7 @@ class FileToAlt:
         offset = round(end_longitude*100000) - round(start_longitude*100000) + 1
         whole_file_dir = self.directory + file_name
         # print(offset)
-        with open(whole_self.dir + file_dir, 'rb') as read_file:
+        with open(whole_file_dir, 'rb') as read_file:
             try:
                 # print(start_latitude, start_longitude, latitude, longitude)
                 # print('size : ',(os.path.getsize(whole_file_dir)/4))
