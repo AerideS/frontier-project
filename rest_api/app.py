@@ -11,6 +11,7 @@ from flask_cors import CORS
 # from todo import Todo
 from waypoint_data import Waypoint
 from device_data import Devices
+from coverageHole import Holes
 
 app = Flask(__name__)
 CORS(app)  # 모든 엔드포인트에 CORS를 활성화합니다.
@@ -26,6 +27,7 @@ api = Api(
 
 api.add_namespace(Waypoint, '/waypoint')
 api.add_namespace(Devices, '/device')
+api.add_namespace(Holes, '/hole')
 # api.add_namespace(Todo, '/todos')
 
 if __name__ == "__main__":
