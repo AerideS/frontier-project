@@ -19,7 +19,7 @@ Holes = Namespace(
     description="APIs for getting data of Holes",
 )
 
-@Holes.route('', methods=['POST'])
+@Holes.route('')
 class DeviceInfo(Resource):
     '''
     전체 device에 대한 정보
@@ -27,17 +27,17 @@ class DeviceInfo(Resource):
     def get(self):
         data = request.get_json()
         
-        gcs_lat = data.get('gcs_lat')
-        gcs_lng = data.get('gcs_lng')
-        gcs_alt = data.get('gcs_alt')
-        flight_alt = data.get('flight_alt')
-        distance = data.get('distance')
+        gcs_lat = request.args.get('gcs_lat', type=float)
+        gcs_lng = request.args.get('gcs_lng', type=float)
+        gcs_alt = request.args.get('gcs_alt', type=float)
+        flight_alt = request.args.get('flight_alt', type=float)
+        distance = request.args.get('distance', type=int)
         
         if LAT_MIN <= gcs_lat <= LAT_MAX and LNG_MIN <= gcs_lng <= LNG_MAX:
                     
             result = getPolygone(gcs_lat, gcs_lng, gcs_alt, 1, flight_alt, distance)
             
             return {'result' : result}
+        
         else:
             return {'error' : "point out of range"}
-

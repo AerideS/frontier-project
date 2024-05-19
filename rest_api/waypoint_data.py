@@ -28,11 +28,11 @@ class WaypointInfo(Resource):
         return {'result' : waypoint_data.getWayPointList()}
     
     def post(self):
-        data = request.data
-        json_data = json.loads(data)
+        # request.json의 값은  {'payload': [0, 128.10257440537356, 35.151786657074084]} 형태
+        data = request.json
+        data = data['payload']
         print(data)
-        print(json_data)
-        waypoint_data.addWaypoint(latitude=json_data['latitude'], longitude=json_data['longitude'])
+        waypoint_data.addWaypoint(type=data[0], latitude=data[1], longitude=data[2])
         
         return {'post' : 'success'}
 
