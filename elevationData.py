@@ -1,4 +1,4 @@
-from api_token import *
+# from api_token import *
 import requests, struct, os, io
 
 class CrawltoImage:
@@ -77,8 +77,9 @@ class CrawltoImage:
             # print(this_start_latitude, this_start_longitude, this_start_latitude, this_end_longitude) 
             
 class FileToAlt:
-    def __init__(self, directory = './') -> None:
+    def __init__(self, directory = './elevation_file/') -> None:
         self.range = []
+        self.dir = directory
         self.getFileList()
 
     def getFileList(self):
@@ -86,7 +87,7 @@ class FileToAlt:
         현재 디렉토리 내의 파일 목록 추출
         고도 정보를 포함한 파일들의 목록 추출
         '''
-        all_files = os.listdir()
+        all_files = os.listdir(self.dir)
 
         self.alt_files = []
 
@@ -94,6 +95,8 @@ class FileToAlt:
             if self.checkFileName(single_file):
                 self.alt_files.append(single_file)
 
+        print(self.alt_files)
+        
     def checkFileName(self, file_name):
         if file_name[:15] != 'elevation_file_':
             return False
@@ -107,7 +110,7 @@ class FileToAlt:
         
         offset = round(end_longitude*100000) - round(start_longitude*100000) + 1
         print(offset)
-        with open(file_name, 'rb') as read_file:
+        with open(self.dir + file_name, 'rb') as read_file:
             try:
                 print(start_latitude, start_longitude, latitude, longitude)
                 print('size : ',(os.path.getsize(file_name)/4))
