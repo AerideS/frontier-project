@@ -9,7 +9,7 @@ class Waypoints:
     "waypoint" : [
         {
             "waypoint_id" : 1,
-            "type" : move or drop
+            "type" : arm, takeoff, move, drop, land
             "latitude" : 35.12445,
             "longitude" : 126.12345
         }
