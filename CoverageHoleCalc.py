@@ -194,7 +194,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         real_lat = round(gcs_lat + (lat - distance + 1) * 0.00001 * unit, 5)
         real_lng = round(gcs_lng + (lng - distance + 1) * 0.00001 * unit, 5)
 
-        return (real_lat, real_lng)
+        return (real_lng, real_lat)
 
 
     def dfs(x, y):
