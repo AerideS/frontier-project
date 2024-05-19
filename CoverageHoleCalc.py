@@ -8,6 +8,10 @@ from matplotlib.animation import FuncAnimation
 
 import math
 
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
+
 terrain_data = FileToAlt()
 
 def calculate_diagonal_length(start_lat, start_lng, end_lat, end_lng):
