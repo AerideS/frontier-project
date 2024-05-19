@@ -9,6 +9,7 @@ from datetime import datetime
 from hardware import * # todo : 각 하드웨어에 대해 별도로 import 하지 않고 하나로 합칠수도 있을 듯
 from math import tan
 import tracemalloc
+from yoloModule import * 
 
 import os
 import sys
@@ -54,11 +55,11 @@ class SeekMode:
     '''
     def __init__(self, parent) -> None:
         self.base_mode = parent
-        self.sub_task_list = [self.seek_stub()]
+        self.sub_task_list = [self.yoloModule()]
         
         # self.yolo_module = FindTree()
         self.cam_module = RaspiCAM__STUB() # 카메라 모듈 스텁
-        self.yolo_module = FindTree__STUB() # yolov5 모듈 스텁
+        self.yolo_module = FindTree() # yolov5 모듈 스텁
         self.lidar_module = LidarModule__STUB() # 라이다 모듈 스텁
                 
         self.CAM_ANGLE = 63/2 # 라즈베리파이 캠의 화각
@@ -96,15 +97,17 @@ class SeekMode:
             print(366)
             this_pic = self.cam_module.getPicture() # 사진 받아옴
             print(368)
-            process_result = await self.yolo_module.find_tree_coordinate(this_pic)
+            process_result = await self.yolo_module.process_image(this_pic)
             print(370)
             if process_result is None:
                 pass # 결과가 없을 경우 이동하고 다시 비행하는 과정 포함
                 print(373)
             else:
-                x_dis, y_dis = process_result
+                terrain_distance = await self.lidar_module.getAltidude()
+                x_pix, y_pix = process_result
+                x_dist, y_dist = self.convertPixelToMeters(x_pix, y_pix, terrain_distance)
                 print(376)
-                await self.base_mode.vehicle.move_meters(x_dis, y_dis)
+                await self.base_mode.vehicle.move_meters(x_dist, y_dist)
                 print(378)
                 await self.base_mode.changeMode('DROP_MODE')
                 print(380)
@@ -126,7 +129,7 @@ class SeekMode:
         x_dist = conversion_factor * pixel_width_dis
         y_dist = conversion_factor * pixel_height_dis
         
-        return (x_dist, y_dist)
+        return x_dist, y_dist
 
 class DropMode:
     '''
@@ -381,7 +384,9 @@ class Drone:
                 pass
             elif single_message["type"] == 'startDrop':
                 print("startDrop, change to SEEK MODE")
-                await self.changeMode(SEEK_MODE)
+                if ('latitude' in single_message) and ('longitude' in single_message):
+                    await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
+                await self.changeMode('SEEK_MODE')
                 print("changed")
                 break
             else:
