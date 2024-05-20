@@ -218,8 +218,8 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         plt.ylim(gcs_lat - distance*unit*0.00001, gcs_lat + distance*unit*0.00001)
         plt.scatter(gcs_lng, gcs_lat, c='r')
         for point_list in groups:
-            lat_points = [point[0] for point in point_list]
-            lng_points = [point[1] for point in point_list]
+            lat_points = [point[1] for point in point_list]
+            lng_points = [point[0] for point in point_list]
             plt.scatter(lng_points, lat_points)
 
         plt.xticks(fontsize=12)
@@ -234,7 +234,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         plt.ylabel('Latitude(deg)')
         # plt.gca().invert_yaxis()
         
-        plt.savefig(f'polygoneFinder_{str(datetime.now().timestamp())}.png')
+        plt.savefig(f'./polygone/polygoneFinder_{str(datetime.now().timestamp())}.png')
         plt.show()
 
 
@@ -248,7 +248,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                         result.append(group)
 
     print(result)
-    # visualize_groups(result)
+    visualize_groups(result)
     return result
   
 if __name__ == '__main__':
