@@ -81,10 +81,9 @@ class CrawltoImage:
             
 
 class FileToAlt:
-    def __init__(self, directory = '../elevation_file/') -> None:
+    def __init__(self, directory = './elevation_file/') -> None:
         self.range = []
         self.directory = directory
-        self.dir = directory
         self.getFileList()
 
     def getFileList(self):
