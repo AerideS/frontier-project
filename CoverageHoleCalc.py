@@ -178,16 +178,19 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     rows, cols = len(losDifData), len(losDifData[0])
     visited = [[False] * cols for _ in range(rows)]
     result = []
-
+    # directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     def is_valid(x, y):
         return 0 <= x < rows and 0 <= y < cols
 
-    def has_adjacent_zero(x, y):
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]  # 상하좌우
+    def has_adjacent(x, y):
         for dx, dy in directions:
             nx, ny = x + dx, y + dy
-            if is_valid(nx, ny) and losDifData[nx][ny] > 0:
-                return True
+            if is_valid(nx, ny):
+                if losDifData[nx][ny] is None: # None MEANS GCS POINT!
+                    return False
+                elif losDifData[nx][ny] > 0:
+                    return True
         return False
     
     def coordConvert(lat, lng):
@@ -205,12 +208,15 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
             if visited[cx][cy]:
                 continue
             visited[cx][cy] = True
-            if has_adjacent_zero(cx, cy):
+            if has_adjacent(cx, cy):
                 group.append(coordConvert(cx, cy))
-            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
+            for dx, dy in directions:
                 nx, ny = cx + dx, cy + dy
-                if is_valid(nx, ny) and not visited[nx][ny] and losDifData[nx][ny] < 0:
-                    stack.append((nx, ny))
+                if is_valid(nx, ny):
+                    if losDifData[nx][ny] is None:
+                        stack.append((nx, ny))
+                    elif (not visited[nx][ny] and losDifData[nx][ny] < 0) :
+                        stack.append((nx, ny))
         return group
     
     def visualize_groups(groups):
@@ -243,11 +249,10 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
             if (losDifData[i][j] is not None):
                 if (losDifData[i][j] < 0) and (not visited[i][j]):
                     group = dfs(i, j)
-                    # if any(has_adjacent_zero(x, y) for x, y in group):
                     if group:
                         result.append(group)
 
-    print(result)
+    print(len(result))
     visualize_groups(result)
     return result
   
@@ -261,11 +266,15 @@ if __name__ == '__main__':
     # calculation(35.15638, 128.07373)
     # calculation(35.15162, 128.08432) #35.151623°N 128.084322°E
     # 
-    lat = 35.16223
-    lng = 128.08989
+    # case 1----------------------------
+    # lat = 35.16223
+    # lng = 128.08989
     alt = 1.0    
     distance = 90
     unit = 1
+    # case 2----------------------------
+    lat = 35.16258
+    lng = 128.09260
     # showGraph(lat, lng, alt, 1, 1, distane=distance)
     polygone = getPolygone(lat, lng, alt, 1, 1, distance)
     # visualize_matrix(distance, polygone)
