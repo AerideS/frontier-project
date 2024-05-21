@@ -178,20 +178,12 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     rows, cols = len(losDifData), len(losDifData[0])
     visited = [[False] * cols for _ in range(rows)]
     result = []
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-    # directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    # directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     def is_valid(x, y):
         return 0 <= x < rows and 0 <= y < cols
 
-    def has_adjacent(x, y):
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            if is_valid(nx, ny):
-                if losDifData[nx][ny] is None: # None MEANS GCS POINT!
-                    return False
-                elif losDifData[nx][ny] > 0:
-                    return True
-        return False
+
     
     def coordConvert(lat, lng):
         real_lat = round(gcs_lat + (lat - distance + 1) * 0.00001 * unit, 5)
@@ -229,8 +221,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         
         plt.savefig(f'./polygone/polygoneFinder_{gcs_lat}_{gcs_lng}_{gcs_alt}__{str(datetime.now().timestamp())}.png')
         plt.show()
-
-
+    
     def addAdditonPoint(group):
         GAP = 0.00002
         start_point = group[0]
@@ -244,6 +235,16 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         if -GAP < lat_gap < GAP :
             return group  
         
+    def has_adjacent(x, y):
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if is_valid(nx, ny):
+                if losDifData[nx][ny] is None: # None MEANS GCS POINT!
+                    return False
+                elif losDifData[nx][ny] < 0:
+                    return True
+        return False
+
     def dfs(x, y):
         stack = [(x, y)]
         group = []
@@ -259,16 +260,16 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                 if is_valid(nx, ny):
                     if losDifData[nx][ny] is None:
                         stack.append((nx, ny))
-                    elif (not visited[nx][ny] and losDifData[nx][ny] < 0) :
+                    elif (not visited[nx][ny] and losDifData[nx][ny] > 0) :
                         stack.append((nx, ny))
         return group
 
     for i in range(rows):
         for j in range(cols):
             if (losDifData[i][j] is not None):
-                if (losDifData[i][j] < 0) and (not visited[i][j]):
+                # 통신 가능 지점에서 탐색 시작
+                if (losDifData[i][j] > 0) and (not visited[i][j]): 
                     group = dfs(i, j)
-                    # if any(has_adjacent_zero(x, y) for x, y in group):
                     if group:
                         # group = addAdditonPoint(group)
                         result.append(group)
