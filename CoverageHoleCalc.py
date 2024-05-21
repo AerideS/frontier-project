@@ -72,6 +72,8 @@ def calculationLos(gcs_latitude, gcs_longitude, gcs_altitude, unit = 1, flight_a
 
         # print('cur', cur_lat, cur_lng, cur_height, cur_slope, 'prv', prev_lat, prev_lng, prev_slope, 'gcs', gcs_latitude, gcs_longitude, gcs_height, distance_to_gsc, 'result', max_slope, los_Height)
 
+    losDifData.setData(gcs_latitude, gcs_longitude, float('INF'))
+
     return losData, losDifData 
 
 
@@ -180,10 +182,12 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     result = []
     # directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
     directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
     def is_valid(x, y):
         return 0 <= x < rows and 0 <= y < cols
-
-
+    
+    def is_visited(x, y):
+        return visited[x,y]
     
     def coordConvert(lat, lng):
         real_lat = round(gcs_lat + (lat - distance + 1) * 0.00001 * unit, 5)
@@ -244,40 +248,61 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                 elif losDifData[nx][ny] < 0:
                     return True
         return False
+    
+    def get_neighbor(x, y):
+        return [(x-1, y), (x-1, y-1), (x, y-1), (x+1, y), (x+1, y+1), (x+1, y-1), (x, y+1), (x+1, y+1)]
 
     def dfs(x, y):
+        '''
+        0보다 작은 지점에 대해 시작
+        이웃 중 0보다 작은 지점이 있으면 group에 추가 
+        추가한 지점과 현재 지점에 대해 공통되는 이웃 중 0보다 큰 지점을 다음 방문 지점 stack에 추가
+        '''
         stack = [(x, y)]
         group = []
         while stack:
-            cx, cy = stack.pop()
-            if visited[cx][cy]:
+            cx, cy = stack.pop() 
+            if visited[cx][cy]: # 방문한 경우 pass
                 continue
             visited[cx][cy] = True
-            if has_adjacent(cx, cy):
-                group.append(coordConvert(cx, cy))
+
             for dx, dy in directions:
-                nx, ny = cx + dx, cy + dy
-                if is_valid(nx, ny):
-                    if losDifData[nx][ny] is None:
-                        stack.append((nx, ny))
-                    elif (not visited[nx][ny] and losDifData[nx][ny] > 0) :
-                        stack.append((nx, ny))
+                nx, ny = cx + dx, cy + dy # 다음 지점 nx, ny
+                if is_valid(nx, ny): 
+                    if losDifData[nx][ny] > 0: # 통신 가능한 지점인 경우
+                        group.append(coordConvert(nx, ny)) # 목록에 추가
+
+                        nxt_pnt_nei = get_neighbor(nx, ny) # 통신 가능 지점의 이웃 지점들
+                        cur_pnt_nei = get_neighbor(cx, cy) # 현재 지점의 이웃 지점들
+                        
+                        # 두 지점들이 겹치는 경우에 대해 
+                        common_pnt = [point for point in nxt_pnt_nei if point in cur_pnt_nei]
+
+                        for s_p in common_pnt:
+                            if is_valid(s_p[0], s_p[1]) is False:
+                                continue
+                            elif losDifData[s_p[0]][s_p[1]] < 0:
+                                stack.append((s_p[0], s_p[1]))
+
+            # print(stack)
+            
+
         return group
+
 
     for i in range(rows):
         for j in range(cols):
             if (losDifData[i][j] is not None):
                 # 통신 가능 지점에서 탐색 시작
-                if (losDifData[i][j] > 0) and (not visited[i][j]): 
+                if (losDifData[i][j] < 0) and (not visited[i][j]): 
                     group = dfs(i, j)
                     if group:
                         # group = addAdditonPoint(group)
                         result.append(group)
-                        print(group)
 
-    print(visited)
-
-    print(len(result))
+    # print(visited)
+ 
+    print(result)
     visualize_groups(result)
     return result
   
