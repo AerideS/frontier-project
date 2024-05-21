@@ -170,7 +170,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     
     losDifData = losDif.point_Data
 
-    print(len(losDifData))
+    # print(losDifData)
     # input()
     if not losDifData:
         return []
@@ -178,8 +178,8 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     rows, cols = len(losDifData), len(losDifData[0])
     visited = [[False] * cols for _ in range(rows)]
     result = []
-    # directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
-    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    # directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
     def is_valid(x, y):
         return 0 <= x < rows and 0 <= y < cols
 
@@ -198,8 +198,52 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         real_lng = round(gcs_lng + (lng - distance + 1) * 0.00001 * unit, 5)
 
         return (real_lng, real_lat)
+    
+    def coordRevert(lat, lng):
+        coord_x = int(round((lng - gcs_lng)*100000 / unit, 5))
+        coord_y = int(round((lat - gcs_lat)*100000 / unit, 5))
+
+        return coord_x, coord_y
+    
+    def visualize_groups(groups):
+        plt.figure(figsize=(14,14))
+        plt.xlim(gcs_lng - distance*unit*0.00001, gcs_lng + distance*unit*0.00001)
+        plt.ylim(gcs_lat - distance*unit*0.00001, gcs_lat + distance*unit*0.00001)
+        plt.scatter(gcs_lng, gcs_lat, c='r')
+
+        for point_list in groups:
+            lat_points = [point[1] for point in point_list]
+            lng_points = [point[0] for point in point_list]
+            plt.scatter(lng_points, lat_points)
+
+        plt.xticks(fontsize=18)
+        current_values = plt.gca().get_xticks()
+        plt.gca().set_xticklabels(['{:.5f}'.format(x) for x in current_values])
+        plt.yticks(fontsize=18)
+        current_values = plt.gca().get_yticks()
+        plt.gca().set_yticklabels(['{:.5f}'.format(x) for x in current_values])
+        
+        plt.grid(True, which='both', color='gray', linewidth=0.5, linestyle='--')
+        plt.xlabel('Longitude(deg)', fontsize=18)
+        plt.ylabel('Latitude(deg)', fontsize=18)
+        
+        plt.savefig(f'./polygone/polygoneFinder_{gcs_lat}_{gcs_lng}_{gcs_alt}__{str(datetime.now().timestamp())}.png')
+        plt.show()
 
 
+    def addAdditonPoint(group):
+        GAP = 0.00002
+        start_point = group[0]
+        end_point = group[-1]
+
+        lng_gap = start_point[0] - end_point[0]
+        lat_gap = start_point[1] - end_point[1]
+
+        if -GAP < lng_gap < GAP :
+            return group
+        if -GAP < lat_gap < GAP :
+            return group  
+        
     def dfs(x, y):
         stack = [(x, y)]
         group = []
@@ -218,39 +262,19 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                     elif (not visited[nx][ny] and losDifData[nx][ny] < 0) :
                         stack.append((nx, ny))
         return group
-    
-    def visualize_groups(groups):
-        plt.xlim(gcs_lng - distance*unit*0.00001, gcs_lng + distance*unit*0.00001)
-        plt.ylim(gcs_lat - distance*unit*0.00001, gcs_lat + distance*unit*0.00001)
-        plt.scatter(gcs_lng, gcs_lat, c='r')
-        for point_list in groups:
-            lat_points = [point[1] for point in point_list]
-            lng_points = [point[0] for point in point_list]
-            plt.scatter(lng_points, lat_points)
-
-        plt.xticks(fontsize=12)
-        current_values = plt.gca().get_xticks()
-        plt.gca().set_xticklabels(['{:.5f}'.format(x) for x in current_values])
-        plt.yticks(fontsize=12)
-        current_values = plt.gca().get_yticks()
-        plt.gca().set_yticklabels(['{:.5f}'.format(x) for x in current_values])
-        
-        plt.grid(True, which='both', color='gray', linewidth=0.5, linestyle='--')
-        plt.xlabel('Longitude(deg)')
-        plt.ylabel('Latitude(deg)')
-        # plt.gca().invert_yaxis()
-        
-        plt.savefig(f'./polygone/polygoneFinder_{str(datetime.now().timestamp())}.png')
-        plt.show()
-
 
     for i in range(rows):
         for j in range(cols):
             if (losDifData[i][j] is not None):
                 if (losDifData[i][j] < 0) and (not visited[i][j]):
                     group = dfs(i, j)
+                    # if any(has_adjacent_zero(x, y) for x, y in group):
                     if group:
+                        # group = addAdditonPoint(group)
                         result.append(group)
+                        print(group)
+
+    print(visited)
 
     print(len(result))
     visualize_groups(result)
@@ -275,6 +299,9 @@ if __name__ == '__main__':
     # case 2----------------------------
     lat = 35.16258
     lng = 128.09260
+    # case 3----------------------------
+    lat = 35.15992
+    lng = 128.08762
     # showGraph(lat, lng, alt, 1, 1, distane=distance)
     polygone = getPolygone(lat, lng, alt, 1, 1, distance)
     # visualize_matrix(distance, polygone)
