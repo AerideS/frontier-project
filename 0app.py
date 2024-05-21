@@ -13,6 +13,7 @@ REST_IP_WAYPOINT = 'http://203.255.57.136:5001/waypoint'
 REST_IP_HOLE = 'http://203.255.57.136:5001/hole'
 
 WP_TYPE_MOVE = 0
+WP_TYPE_DROP_AP = 1
 
 # 선택 디바이스 전역 저장
 selectDevice = 'NONE'
@@ -40,20 +41,28 @@ def addWP_post():
   requests.post(REST_IP_WAYPOINT, json=payload)
   return render_template('0service_refactoring.html', selectDevice=selectDevice)
 
+@app.route('/editWP', methods=['POST'])
+def edit_waypoint():
+  # waypoint ID, longitude, latitude 
+  data = request.json
+  print(data[0])
+  response = requests.put(REST_IP_WAYPOINT + '/' + str(data[0]), json=data)
+  return render_template('service.html')
+
 ## debug
 # 계산된 폴리곤 가져오기
 @app.route('/getPoly', methods=['GET'])
 def fetch_polygon():
-    lat = 35.16223
-    lng = 128.08989
-    alt = 1.0    
-    distance = 90
-    unit = 1
+  lat = 35.16223
+  lng = 128.08989
+  alt = 1.0    
+  distance = 90
+  unit = 1
 
-    payload = {'gcs_lat': lat, 'gcs_lng': lng, 'gcs_alt': alt, 'flight_alt': unit, 'distance': distance}
-    response = requests.post(REST_IP_HOLE, json=payload)
-    print(response)
-    return render_template('main.html')
+  payload = {'gcs_lat': lat, 'gcs_lng': lng, 'gcs_alt': alt, 'flight_alt': unit, 'distance': distance}
+  response = requests.post(REST_IP_HOLE, json=payload)
+  print(response)
+  return render_template('main.html')
 
 
 
