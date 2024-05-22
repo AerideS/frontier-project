@@ -47,14 +47,15 @@ class WaypointInfoSpec(Resource):
     def put(self, waypoint_id):
         data = request.json
         id = int(data[0])
-        latitude = data[1]
-        longitude = data[2]
+        wp_type = int(data[1])
+        latitude = data[2]
+        longitude = data[3]
 
         print(latitude, longitude)
         print('=============')
         print(data)
 
-        waypoint_data.updateWaypoint(int(id), float(latitude), float(longitude))
+        waypoint_data.updateWaypoint(int(id), int(wp_type) , float(latitude), float(longitude))
         return {'put' : 'success'}
         
     def delete(self, waypoint_id):
