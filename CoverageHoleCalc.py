@@ -12,7 +12,8 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
-GAP = 0.00005
+JUMP_GAP = 0.00005
+CLOSE_GAP = 0.00002
 
 terrain_data = FileToAlt()
 
@@ -283,20 +284,6 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         ani = FuncAnimation(fig, update, frames=range(len(new_result)), interval=50)
         ani.save(f'./polygone/hole_polygone_{lat}_{lng}_{alt}__{unit}_{str(datetime.now().timestamp())}.gif')
         plt.show()
-    
-    
-    def addAdditonPoint(group):
-        GAP = 0.00002
-        start_point = group[0]
-        end_point = group[-1]
-
-        lng_gap = start_point[0] - end_point[0]
-        lat_gap = start_point[1] - end_point[1]
-
-        if -GAP < lng_gap < GAP :
-            return group
-        if -GAP < lat_gap < GAP :
-            return group  
         
     def has_adjacent(x, y):
         for dx, dy in directions:
@@ -353,7 +340,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
             next_point = min(points, key=lambda p: distance_calc(p, last_point))
 
             dist = distance_calc(last_point, next_point) 
-            if dist > GAP:
+            if dist > JUMP_GAP:
                 print(dist)
                 next_point = get_sorted(points)
                 print('next_point', next_point)
@@ -361,8 +348,74 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
             points.remove(next_point)
             sorted_points.append(next_point)
 
-        return sorted_points
 
+        return sorted_points
+    
+    def process_result(result):
+        seperated = [] # 분리된 선들의 집합 
+        seperated_line = [] # 선을 구성하는 지점들의 집합
+        for single_line in result:
+            print('single_line', single_line)
+            seperated_line = [single_line[0]]
+            single_line.remove(seperated_line[0])
+            while single_line:
+                last_point = seperated_line[-1]
+                next_point = min(single_line, key=lambda p: distance_calc(p, last_point))
+
+            #     seperated_line.append(next_point)
+            #     single_line.remove(next_point)
+            # seperated.append(seperated_line)
+                dist = distance_calc(last_point, next_point) 
+                if dist > JUMP_GAP:
+                    seperated.append(seperated_line)
+                    seperated_line = [next_point]
+                else:
+                    seperated_line.append(next_point)
+                    single_line.remove(next_point)
+            seperated.append(seperated_line)
+
+        print('-------------------')
+        node = []
+        for i in seperated:
+            print(i[0], i[-1])
+            node.append((i[0], i[-1]))
+        print(seperated)
+
+        to_be_connected = []
+
+        for i in range(len(node)):
+            for j in range(i + 1, len(node)):
+                if distance_calc(node[i][0], node[j][0]) <= CLOSE_GAP:
+                    to_be_connected.append((i, j, 0, 0))
+                if distance_calc(node[i][0], node[j][1]) <= CLOSE_GAP:
+                    to_be_connected.append((i, j, 0, 1))
+                if distance_calc(node[i][1], node[j][1]) <= CLOSE_GAP:
+                    to_be_connected.append((i, j, 1, 1))
+                if distance_calc(node[i][1], node[j][0]) <= CLOSE_GAP:
+                    to_be_connected.append((i, j, 1, 0))
+
+        print('to_be_connected', to_be_connected)
+
+        for task in to_be_connected:
+            merge_1 = seperated[task[0]]
+            merge_2 = seperated[task[1]]
+
+            seperated.remove(merge_1)
+            seperated.remove(merge_2)
+
+            if task[2:] == (0, 0):
+                seperated.append(list(reversed(merge_1)) + merge_2)     
+            elif task[2:] == (0, 1):
+                seperated.append(list(reversed(merge_1)) + list(reversed(merge_2)))
+            elif task[2:] == (1, 0):
+                seperated.append(merge_1 + merge_2)  
+            elif task[2:] == (1, 1):
+                seperated.append(merge_1 + list(reversed(merge_2)))
+
+
+
+        return seperated
+    
     def dfs(x, y):
         '''
         0보다 작은 지점에 대해 시작
@@ -385,34 +438,6 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                         stack.append((nx, ny))
                     elif (not visited[nx][ny] and losDifData[nx][ny] > 0):
                         stack.append((nx, ny))
-        # while stack:
-        #     cx, cy = stack.pop() 
-        #     if visited[cx][cy]: # 방문한 경우 pass
-        #         continue
-        #     visited[cx][cy] = True
-
-        #     for dx, dy in directions:
-        #         nx, ny = cx + dx, cy + dy # 다음 지점 nx, ny
-        #         if is_valid(nx, ny): 
-        #             if losDifData[nx][ny] > 0: # 통신 가능한 지점인 경우
-        #                 group.append(coordConvert(nx, ny)) # 목록에 추가
-
-        #                 nxt_pnt_nei = get_neighbor(nx, ny) # 통신 가능 지점의 이웃 지점들
-        #                 # cur_pnt_nei = get_neighbor(cx, cy) # 현재 지점의 이웃 지점들
-                        
-        #                 # 두 지점들이 겹치는 경우에 대해 
-        #                 # common_pnt = [point for point in nxt_pnt_nei if point in cur_pnt_nei]
-
-        #                 for s_p in nxt_pnt_nei:
-        #                     if is_valid(s_p[0], s_p[1]) is False:
-        #                         continue
-        #                     elif visited[s_p[0]][s_p[1]]:
-        #                         continue
-        #                     elif losDifData[s_p[0]][s_p[1]] > 0:
-        #                         stack.append((s_p[0], s_p[1]))
-
-        #     # print(stack)
-            
 
         return group
 
@@ -428,11 +453,13 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                         result.append(sort_points(group))
 
     # print(visited)
- 
+    print(result)
+    visualize_groups(result)
+    result = process_result(result)
     print(len(result))
-    # visualize_groups(result)
+    visualize_groups(result)
     print("making animation")
-    visualize_groups_animation(result)
+    # visualize_groups_animation(result)
     return result
   
 if __name__ == '__main__':
