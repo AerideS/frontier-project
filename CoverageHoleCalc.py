@@ -177,7 +177,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     losDifData = losDif.point_Data
 
     # print(losDifData)
-    # input()
+    # input()8
     if not losDifData:
         return []
 
@@ -314,27 +314,30 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     def distance_calc(p1, p2):
         return np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
 
-    def get_sorted(points : list):
-        cur_min_lng_pnt = min(points, key=lambda p: p[0])
-        cur_max_lng_pnt = max(points, key=lambda p: p[0])
-        cur_min_lat_pnt = min(points, key=lambda p: p[1])
-        cur_max_lat_pnt = max(points, key=lambda p: p[1])
+    def get_sorted(points : list): #key=lambda p: distance_calc(p, last_point)
+        left_lower = min(points, key=lambda p: distance_calc(p, (min_lng, min_lat)))
+        left_upper = min(points, key=lambda p: distance_calc(p, (min_lng, max_lat)))
+        right_lower = min(points, key=lambda p: distance_calc(p, (max_lng, min_lat)))
+        right_upper = min(points, key=lambda p: distance_calc(p, (max_lng, max_lat)))
+
+        # gap_lst = [round(cur_min_lng_pnt[0] - min_lng, 5), round(max_lng - cur_max_lng_pnt[0], 5),
+        #            round(cur_min_lat_pnt[1] - min_lat, 5), round(max_lat - cur_max_lat_pnt[1], 5)]
         
-        gap_lst = [round(cur_min_lng_pnt[0] - min_lng, 5), round(max_lng - cur_max_lng_pnt[0], 5),
-                   round(cur_min_lat_pnt[1] - min_lat, 5), round(max_lat - cur_max_lat_pnt[1], 5)]
+        gap_lst = [distance_calc(left_lower, (min_lng, min_lat)), distance_calc(left_upper, (min_lng, max_lat)),
+                   distance_calc(right_lower, (max_lng, min_lat)), distance_calc(right_upper, (max_lng, max_lat))]
         
         print(gap_lst)
 
-        min_gap = max(gap_lst)
+        min_gap = min(gap_lst)
 
         if min_gap == gap_lst[0]:
-            return cur_max_lng_pnt
+            return left_lower
         elif min_gap == gap_lst[1]:
-            return cur_max_lng_pnt
+            return left_upper
         elif min_gap == gap_lst[2]:
-            return cur_min_lat_pnt
+            return right_lower
         elif min_gap == gap_lst[3]:
-            return cur_max_lat_pnt
+            return right_upper
 
 
     def sort_points(points : list):
