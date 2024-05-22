@@ -370,7 +370,18 @@ class MqSender:
         }
         self.send_message("startDrop", message)
 
+    def cutString(self):
+        message = {
+            'type' : 'cutString'
+            }
+        self.send_message("cutString", message)
 
+    def startReel(self):
+        message = {
+            'type' : 'startReel'
+        }
+        self.send_message("startReel", message)
+        
     def close(self):
         self.connection.close()
 
