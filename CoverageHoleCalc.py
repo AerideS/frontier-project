@@ -12,8 +12,8 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
-JUMP_GAP = 0.00005
-CLOSE_GAP = 0.00002
+JUMP_GAP = 0.00002
+CLOSE_GAP = 0.00003
 
 terrain_data = FileToAlt()
 
@@ -248,11 +248,8 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
         new_result = []
         for point in result:
-            # print(point)
             new_result.append(point)
 
-        print(new_result)
-        new_result = sort_points(new_result[0])
         print(new_result)
         # new_result = new_result[0]
         fig, ax = plt.subplots()
@@ -327,7 +324,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
             return right_upper
 
 
-    def sort_points(points : list):
+    def seperate_points(points : list):
         #todo 경도 순 정렬 -> 가장 작은거를 pop 해서 시작점으로
 
         sorted_points = [get_sorted(points)]
@@ -351,70 +348,112 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
         return sorted_points
     
+    def sort_direction(lines):
+        pass
+
+    
     def process_result(result):
         seperated = [] # 분리된 선들의 집합 
         seperated_line = [] # 선을 구성하는 지점들의 집합
+        merged_lines = []
+
         for single_line in result:
-            print('single_line', single_line)
-            seperated_line = [single_line[0]]
-            single_line.remove(seperated_line[0])
-            while single_line:
-                last_point = seperated_line[-1]
-                next_point = min(single_line, key=lambda p: distance_calc(p, last_point))
+            merged_lines += single_line
 
-            #     seperated_line.append(next_point)
-            #     single_line.remove(next_point)
-            # seperated.append(seperated_line)
-                dist = distance_calc(last_point, next_point) 
-                if dist > JUMP_GAP:
-                    seperated.append(seperated_line)
-                    seperated_line = [next_point]
-                else:
-                    seperated_line.append(next_point)
-                    single_line.remove(next_point)
-            seperated.append(seperated_line)
+        print('merged_lines', merged_lines)
+        
+        # for single_line in result:
+        # print('single_line', single_line)
+        merged_lines = seperate_points(merged_lines)
 
-        print('-------------------')
-        node = []
-        for i in seperated:
-            print(i[0], i[-1])
-            node.append((i[0], i[-1]))
-        print(seperated)
+        # visualize_groups_animation(merged_lines)
+        
+        
+        # seperated_line = [merged_lines[0]]
+        # merged_lines.remove(seperated_line[0])
 
-        to_be_connected = []
+        # while merged_lines:
+        #     last_point = seperated_line[-1]
+        #     next_point = min(merged_lines, key=lambda p: distance_calc(p, last_point))
 
-        for i in range(len(node)):
-            for j in range(i + 1, len(node)):
-                if distance_calc(node[i][0], node[j][0]) <= CLOSE_GAP:
-                    to_be_connected.append((i, j, 0, 0))
-                if distance_calc(node[i][0], node[j][1]) <= CLOSE_GAP:
-                    to_be_connected.append((i, j, 0, 1))
-                if distance_calc(node[i][1], node[j][1]) <= CLOSE_GAP:
-                    to_be_connected.append((i, j, 1, 1))
-                if distance_calc(node[i][1], node[j][0]) <= CLOSE_GAP:
-                    to_be_connected.append((i, j, 1, 0))
+        # #     seperated_line.append(next_point)
+        # #     merged_lines.remove(next_point)
+        # # seperated.append(seperated_line)
+        #     dist = distance_calc(last_point, next_point) 
+        #     if dist > JUMP_GAP:
+        #         seperated.append(seperated_line)
+        #         seperated_line = [next_point]
+        #     else:
+        #         seperated_line.append(next_point)
+        #         merged_lines.remove(next_point)
 
-        print('to_be_connected', to_be_connected)
+        # seperated.append(seperated_line)
 
-        for task in to_be_connected:
-            merge_1 = seperated[task[0]]
-            merge_2 = seperated[task[1]]
+        # print('-------------------')
+        # node = []
+        # for i in seperated:
+        #     print(i[0], i[-1])
+        #     node.append((i[0], i[-1]))
+        # print(len(node))
 
-            seperated.remove(merge_1)
-            seperated.remove(merge_2)
+        # connected = []
 
-            if task[2:] == (0, 0):
-                seperated.append(list(reversed(merge_1)) + merge_2)     
-            elif task[2:] == (0, 1):
-                seperated.append(list(reversed(merge_1)) + list(reversed(merge_2)))
-            elif task[2:] == (1, 0):
-                seperated.append(merge_1 + merge_2)  
-            elif task[2:] == (1, 1):
-                seperated.append(merge_1 + list(reversed(merge_2)))
+        # while seperated:
+        #     cur_comp = seperated.pop()
+
+        #     for nxt_comp in seperated:
+        #         if distance_calc(cur_comp[0], nxt_comp[0]) <= CLOSE_GAP:
+        #             cur_comp = list(reversed(cur_comp)) + nxt_comp
+        #             print("connected", cur_comp[0], nxt_comp[0])
+        #             seperated.remove(nxt_comp)
+        #             continue
+        #         elif distance_calc(cur_comp[0], nxt_comp[-1]) <= CLOSE_GAP:
+        #             cur_comp = list(reversed(cur_comp)) + list(reversed(nxt_comp))
+        #             print("connected", cur_comp[0], nxt_comp[-1])
+        #             seperated.remove(nxt_comp)
+        #             continue
+        #         elif distance_calc(cur_comp[-1], nxt_comp[-1]) <= CLOSE_GAP:
+        #             cur_comp = cur_comp + nxt_comp
+        #             print("connected", cur_comp[-1], nxt_comp[-1])
+        #             seperated.remove(nxt_comp)
+        #             continue
+        #         elif distance_calc(cur_comp[-1], nxt_comp[0]) <= CLOSE_GAP:
+        #             cur_comp = cur_comp + list(reversed(nxt_comp))
+        #             print("connected", cur_comp[-1], nxt_comp[0])
+        #             seperated.remove(nxt_comp)
+        #             continue
+            
+        #     connected.append(cur_comp)
+
+        # print('-------------------')
+        # node = []
+        # for i in connected:
+        #     print(i[0], i[-1])
+        #     node.append((i[0], i[-1]))
+        # print(len(node))
+
+        # '''
+        # 이중 FOR문, 끝점이 잘못 설정된 경우
+        #     1. 모든 connected의 끝점에 대해
+        #         2. 각 직선의 끝점과 직선 내의 지점과의 거리를 비교하여
+        #         직선 내의 지점이 더 가깝다면
+        #         해당 지점을 직선의 끝점으로 간주하고 다시 점 정렬
+        # '''
+        # # for i, single_line in enumerate(connected):
+        # #     for j, single_line_comp in enumerate(connected):
+        # #         if i == j:
+        # #             continue
+                
+        # #         min_dist_0 = min(single_line_comp, key=lambda p: distance_calc(p, single_line[0]))
+        # #         min_dist_1 = min(single_line_comp, key=lambda p: distance_calc(p, single_line[1]))
+
+        # #         # if min(min_dist_0, min_dist_1) < 0.00005:
+    
 
 
 
-        return seperated
+        # return connected
+        return merged_lines
     
     def dfs(x, y):
         '''
@@ -450,11 +489,11 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                     group = dfs(i, j)
                     if group:
                         # group = addAdditonPoint(group)
-                        result.append(sort_points(group))
+                        result.append(seperate_points(group))
 
     # print(visited)
     print(result)
-    visualize_groups(result)
+    # visualize_groups(result)
     result = process_result(result)
     print(len(result))
     visualize_groups(result)
