@@ -17,10 +17,7 @@ Devices  = Namespace(
 )
 
 receiver = MqReceiver("SERVER", "localhost") #큐 이름, 서버 주소
-
-
-
-
+gevent.spawn(receiver.get_message)
 
 @Devices.route('')
 class DeviceInfo(Resource):
