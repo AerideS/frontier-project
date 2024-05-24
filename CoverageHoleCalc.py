@@ -14,6 +14,7 @@ sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 JUMP_GAP = 0.00002
 CLOSE_GAP = 0.00003
+APPEND_THRESHOLD_LENGTH = 20
 
 terrain_data = FileToAlt()
 
@@ -225,9 +226,20 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         plt.ylim(gcs_lat - distance*unit*0.00001, gcs_lat + distance*unit*0.00001)
         plt.scatter(gcs_lng, gcs_lat, c='r')
 
-        for point_list in groups:
-            lat_points = [point[1] for point in point_list]
-            lng_points = [point[0] for point in point_list]
+        lat_points = None
+        lng_points = None
+
+        if type(groups[0]) == list:
+            for point_list in groups:
+                lng_points = [point[0] for point in point_list]
+                lat_points = [point[1] for point in point_list]                
+
+                plt.scatter(lng_points, lat_points)
+        
+        else:         
+
+            lat_points = [point[1] for point in groups]
+            lng_points = [point[0] for point in groups]
             plt.scatter(lng_points, lat_points)
 
         plt.xticks(fontsize=18)
@@ -248,9 +260,9 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
         new_result = []
         for point in result:
-            new_result.append(point)
+            new_result += point
 
-        print(new_result)
+        print(result)
         # new_result = new_result[0]
         fig, ax = plt.subplots()
         scat = ax.scatter([], [])
@@ -323,6 +335,35 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         elif min_gap == gap_lst[3]:
             return right_upper
 
+    def seperate_points_list(points: list):
+        # todo: 경도 손 정렬 --> 가장 작은거를 pop해서 시작점으로
+        print(points)
+        sorted_points_list = []
+
+        sorted_points = [get_sorted(points)]
+        points.remove(sorted_points[0])
+
+        # sorted_points := [points.pop(0)] # 임의의 시작점 (여기서는 첫 번째 점)
+        while points:
+            last_point = sorted_points[-1]
+            next_point = min(points, key=lambda p: distance_calc(p, last_point))
+
+            dist = distance_calc(last_point, next_point)
+            if dist > JUMP_GAP:
+                # 다음 지점이 일정 거리 이상 지점인 경우 새로운 목록 생성
+                print(dist)
+                sorted_points_list.append(sorted_points)
+                sorted_points = [get_sorted(points)]
+                print('next_point', next_point)
+            else:
+                sorted_points.append(next_point)
+                points.remove(next_point)
+                
+
+        sorted_points_list.append(sorted_points)
+
+        return sorted_points_list
+    
 
     def seperate_points(points : list):
         #todo 경도 순 정렬 -> 가장 작은거를 pop 해서 시작점으로
@@ -351,109 +392,154 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     def sort_direction(lines):
         pass
 
-    
-    def process_result(result):
-        seperated = [] # 분리된 선들의 집합 
-        seperated_line = [] # 선을 구성하는 지점들의 집합
+    def mergeLines(line_list):
         merged_lines = []
-
-        for single_line in result:
+        for single_line in line_list:
             merged_lines += single_line
 
-        print('merged_lines', merged_lines)
-        
-        # for single_line in result:
-        # print('single_line', single_line)
-        merged_lines = seperate_points(merged_lines)
-
-        # visualize_groups_animation(merged_lines)
-        
-        
-        # seperated_line = [merged_lines[0]]
-        # merged_lines.remove(seperated_line[0])
-
-        # while merged_lines:
-        #     last_point = seperated_line[-1]
-        #     next_point = min(merged_lines, key=lambda p: distance_calc(p, last_point))
-
-        # #     seperated_line.append(next_point)
-        # #     merged_lines.remove(next_point)
-        # # seperated.append(seperated_line)
-        #     dist = distance_calc(last_point, next_point) 
-        #     if dist > JUMP_GAP:
-        #         seperated.append(seperated_line)
-        #         seperated_line = [next_point]
-        #     else:
-        #         seperated_line.append(next_point)
-        #         merged_lines.remove(next_point)
-
-        # seperated.append(seperated_line)
-
-        # print('-------------------')
-        # node = []
-        # for i in seperated:
-        #     print(i[0], i[-1])
-        #     node.append((i[0], i[-1]))
-        # print(len(node))
-
-        # connected = []
-
-        # while seperated:
-        #     cur_comp = seperated.pop()
-
-        #     for nxt_comp in seperated:
-        #         if distance_calc(cur_comp[0], nxt_comp[0]) <= CLOSE_GAP:
-        #             cur_comp = list(reversed(cur_comp)) + nxt_comp
-        #             print("connected", cur_comp[0], nxt_comp[0])
-        #             seperated.remove(nxt_comp)
-        #             continue
-        #         elif distance_calc(cur_comp[0], nxt_comp[-1]) <= CLOSE_GAP:
-        #             cur_comp = list(reversed(cur_comp)) + list(reversed(nxt_comp))
-        #             print("connected", cur_comp[0], nxt_comp[-1])
-        #             seperated.remove(nxt_comp)
-        #             continue
-        #         elif distance_calc(cur_comp[-1], nxt_comp[-1]) <= CLOSE_GAP:
-        #             cur_comp = cur_comp + nxt_comp
-        #             print("connected", cur_comp[-1], nxt_comp[-1])
-        #             seperated.remove(nxt_comp)
-        #             continue
-        #         elif distance_calc(cur_comp[-1], nxt_comp[0]) <= CLOSE_GAP:
-        #             cur_comp = cur_comp + list(reversed(nxt_comp))
-        #             print("connected", cur_comp[-1], nxt_comp[0])
-        #             seperated.remove(nxt_comp)
-        #             continue
-            
-        #     connected.append(cur_comp)
-
-        # print('-------------------')
-        # node = []
-        # for i in connected:
-        #     print(i[0], i[-1])
-        #     node.append((i[0], i[-1]))
-        # print(len(node))
-
-        # '''
-        # 이중 FOR문, 끝점이 잘못 설정된 경우
-        #     1. 모든 connected의 끝점에 대해
-        #         2. 각 직선의 끝점과 직선 내의 지점과의 거리를 비교하여
-        #         직선 내의 지점이 더 가깝다면
-        #         해당 지점을 직선의 끝점으로 간주하고 다시 점 정렬
-        # '''
-        # # for i, single_line in enumerate(connected):
-        # #     for j, single_line_comp in enumerate(connected):
-        # #         if i == j:
-        # #             continue
-                
-        # #         min_dist_0 = min(single_line_comp, key=lambda p: distance_calc(p, single_line[0]))
-        # #         min_dist_1 = min(single_line_comp, key=lambda p: distance_calc(p, single_line[1]))
-
-        # #         # if min(min_dist_0, min_dist_1) < 0.00005:
-    
-
-
-
-        # return connected
         return merged_lines
+    
+    def sort_line_order(lines : list):
+
+        node = []
+        new_lines = []
+        for i in lines:
+            print(i[0], i[-1])
+            node.append((i[0], i[-1]))
+
+        print(lines, '-------------------')
+
+        while True:
+            new_lines = [lines.pop()]
+            print('new_lines', new_lines)
+            node.pop()
+            if len(new_lines[0]) > APPEND_THRESHOLD_LENGTH:
+                break
+
+
+        while lines:
+            min_dist = float('INF')
+            min_dist_index = None
+            print('-------------')
+
+            for i, single_node in enumerate(node):
+                print(new_lines, single_node)
+                first_dist = distance_calc(new_lines[-1][-1], single_node[0])    # 현재 지점의 시작점, 이전 지점의 시작점
+                second_dist = distance_calc(new_lines[0][0], single_node[0])   # 현재 지점의 시작점, 이전 지점의 종료점
+
+                third_dist = distance_calc(new_lines[-1][-1], single_node[1])    # 현재 지점의 종료점, 이전 지점의 시작점
+                fourth_dist = distance_calc(new_lines[0][0], single_node[1])   # 현재 지점의 종료점, 이전 지점의 시작점
+
+                if  first_dist < min_dist:
+                    min_dist_index = (i, 0)
+                    min_dist = first_dist
+
+                if  second_dist < min_dist:
+                    min_dist_index = (i, 1)
+                    min_dist = second_dist
+
+                if  third_dist < min_dist:
+                    min_dist_index = (i, 2)
+                    min_dist = third_dist
+
+                if  fourth_dist < min_dist:
+                    min_dist_index = (i, 3)
+                    min_dist = fourth_dist
+            
+            print(min_dist_index, 449)
+
+            if len(lines[min_dist_index[0]]) < APPEND_THRESHOLD_LENGTH:
+                print(new_lines)
+                lines.pop(min_dist_index[0])
+                print(new_lines)
+            elif min_dist_index[1] == 0:
+                print(new_lines)
+                new_lines += [lines.pop(min_dist_index[0])]
+                print(new_lines)
+            elif min_dist_index[1] == 1:
+                print(new_lines)
+                new_lines = [list(reversed(lines.pop(min_dist_index[0])))] + new_lines
+                print(new_lines)
+            elif min_dist_index[1] == 2:
+                print(new_lines)
+                new_lines += [list(reversed(lines.pop(min_dist_index[0])))]
+                print(new_lines)
+            elif min_dist_index[1] == 3:
+                print(new_lines)
+                new_lines = [lines.pop(min_dist_index[0])] + new_lines
+                print(new_lines)
+
+            node.pop(min_dist_index[0])
+
+        return new_lines
+
+    def get_degree(point):
+        '''
+        꼭지점 대비 시작점의 위치 구하기
+        정사각형의 각 꼭지점과 중심점을 기준으로 지점이 어느 위치에 있는지 반환
+        -------------
+        | \   0   / |
+        |   \   /   |
+        | 1   X   3 |
+        |   /   \   |
+        | /   2   \ |
+        -------------                   
+        각 지점에 해당하는 숫자 반환
+        '''
+        angle = math.atan((point[1] - gcs_lat) /  (point[0] - gcs_lng))
+
+        return angle
+        # if (angle >= 0.7854) and (angle <= 2.3562):
+        #     return 0
+        # elif (angle >= 2.3562) and (angle <= 3.9270):
+        #     return 1
+        # elif (angle >= 3.9270) and (angle <=  5.4978):
+        #     return 2
+        # elif (angle >=  5.4978) or (angle <= 0.7854):
+        #     return 3      
+
+    def add_vertex(lines):
+        '''
+        각 지점에 선 단위로 각도 얻어냄 -> 회전 방향 알아냄 : 시계, 반시계
+        
+        다음 선으로 이동할 때, 모서리가 뛰는 경우 점 추가
+
+            모서리가 뛰지 않는 경우 넘기기
+
+        끝난 경우 시작 지점 사이에 모서리 추가
+
+        '''
+        for single_line in lines:
+            rotate_angle = 0
+            for i in range(len(single_line)-2):
+                rotate_angle += (get_degree(single_line[i]) - get_degree(single_line[i+1]))
+
+            # if rotate_angle
+
+
+
+    def process_result(result):
+        '''
+        근접하는 선들을 연결
+        '''
+
+        lines = mergeLines(result) # 선들을 하나의 목록으로 통합
+
+        # visualize_groups(lines)
+        
+        # seperated_lines = seperate_points(lines) # 점들을 분할
+
+        print('seperated_lines', lines)
+
+        # visualize_groups(lines)
+
+        lines = sort_line_order(lines)
+
+        visualize_groups(lines)
+
+        # lines = add_vertex(lines)
+
+        return lines
     
     def dfs(x, y):
         '''
@@ -489,16 +575,16 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                     group = dfs(i, j)
                     if group:
                         # group = addAdditonPoint(group)
-                        result.append(seperate_points(group))
+                        result.append(seperate_points_list(group))
 
     # print(visited)
     print(result)
     # visualize_groups(result)
     result = process_result(result)
-    print(len(result))
+    # print(len(result))
     visualize_groups(result)
     print("making animation")
-    # visualize_groups_animation(result)
+    visualize_groups_animation(result)
     return result
   
 if __name__ == '__main__':
