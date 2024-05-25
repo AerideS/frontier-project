@@ -477,45 +477,102 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         '''
         꼭지점 대비 시작점의 위치 구하기
         정사각형의 각 꼭지점과 중심점을 기준으로 지점이 어느 위치에 있는지 반환
-        -------------
+        1-----------0
         | \   0   / |
         |   \   /   |
         | 1   X   3 |
         |   /   \   |
         | /   2   \ |
-        -------------                   
+        2-----------3                   
         각 지점에 해당하는 숫자 반환
         '''
-        angle = math.atan((point[1] - gcs_lat) /  (point[0] - gcs_lng))
+        if (point[0] - gcs_lng) == 0:
+            if (point[1] - gcs_lat) > 0:
+                return 0
+            else:
+                return 3.1415
+
+        angle = math.atan2((point[1] - gcs_lat), (point[0] - gcs_lng))
 
         return angle
-        # if (angle >= 0.7854) and (angle <= 2.3562):
-        #     return 0
-        # elif (angle >= 2.3562) and (angle <= 3.9270):
-        #     return 1
-        # elif (angle >= 3.9270) and (angle <=  5.4978):
-        #     return 2
-        # elif (angle >=  5.4978) or (angle <= 0.7854):
-        #     return 3      
+    
+    def get_edge_num(point):
+        angle = get_degree(point)
+        if (angle >= 0.7854) and (angle <= 2.3562):
+            return 0
+        elif (angle >= 2.3562) and (angle <= 3.9270):
+            return 1
+        elif (angle >= 3.9270) and (angle <=  5.4978):
+            return 2
+        elif (angle >=  5.4978) or (angle <= 0.7854):
+            return 3      
 
     def add_vertex(lines):
         '''
-        각 지점에 선 단위로 각도 얻어냄 -> 회전 방향 알아냄 : 시계, 반시계
-        
+        각 지점에 선 단위로 각도 얻어냄 -> 회전 방향 알아냄 : 시계, 반시계        
         다음 선으로 이동할 때, 모서리가 뛰는 경우 점 추가
-
             모서리가 뛰지 않는 경우 넘기기
-
         끝난 경우 시작 지점 사이에 모서리 추가
-
         '''
-        for single_line in lines:
+        
+        will_added_point = [None * len(lines)]
+
+        pnt = 0
+        prev_edge = None
+        while pnt < len(lines):
+            order = [0, 1, 2, 3]
             rotate_angle = 0
-            for i in range(len(single_line)-2):
-                rotate_angle += (get_degree(single_line[i]) - get_degree(single_line[i+1]))
+            start_edge = get_edge_num(lines[pnt][0])
+            end_edge = get_edge_num(lines[pnt][-1])
 
-            # if rotate_angle
+            for i in range(len(lines[pnt]) - 1):
+                cur = get_degree(lines[pnt][i])
+                nxt = get_degree(lines[pnt][i + 1])
 
+                # 각도 차이 계산
+                delta_angle = nxt - cur
+
+                # 각도 차이를 -π와 π 사이로 조정
+                if delta_angle > math.pi:
+                    delta_angle -= 2 * math.pi
+                elif delta_angle < -math.pi:
+                    delta_angle += 2 * math.pi
+
+                rotate_angle += delta_angle
+
+            if start_edge == end_edge:
+                # 시작 모서리에서 시작 모서리로 다시 돌아왔는데 각도는 한바퀴 돌고온거임...
+                if rotate_angle > 1.5708: # 반시계 방향 회전
+                    will_added_point[pnt] = order.pop(start_edge)
+                elif rotate_angle < - 1.5708: # 시계 방향 회전
+                    will_added_point[pnt] = order.pop(start_edge)
+
+            print(rotate_angle, '----------------------')
+
+            pnt += 1
+
+            # if rotate_angle > 6.2832 : # 반시계 방향으로 360도 이상
+            #     pass
+            # elif rotate_angle > 4.7124 : # 반시계 방향으로 360~270
+            #     pass
+            # elif rotate_angle > 3.1416 : # 반시계 방향으로 270~180
+            #     pass
+            # elif rotate_angle > 1.5708 : # 반시계 방향으로 180~90
+            #     pass
+            # elif rotate_angle > 0 : # 반시계 방향으로 90~0도 이상
+            #     pass
+            # elif rotate_angle > -1.5708 : # 시계 방향으로 0~90
+            #     pass
+            # elif rotate_angle > -3.1416 : # 반시계 방향으로 90~180
+            #     pass
+            # elif rotate_angle > -4.7124 : # 반시계 방향으로 180~270
+            #     pass
+            # elif rotate_angle > -6.2832 : # 반시계 방향으로 270~360
+            #     pass
+            # elif rotate_angle < 6.2832 : # 반시계 방향으로 360도 이상
+            #     pass
+
+            # # 각도 -> 진행 
 
 
     def process_result(result):
@@ -536,6 +593,8 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         lines = sort_line_order(lines)
 
         visualize_groups(lines)
+
+        add_vertex(lines)
 
         # lines = add_vertex(lines)
 
