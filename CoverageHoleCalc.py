@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 # from elevation_crawling import *
 from elevationData import * 
 from matplotlib.animation import FuncAnimation
+from mongodb_api import PolygonData
 
 import math
 
@@ -364,7 +365,6 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
         return sorted_points_list
     
-
     def seperate_points(points : list):
         #todo 경도 순 정렬 -> 가장 작은거를 pop 해서 시작점으로
 
@@ -541,7 +541,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                 rotate_angle += delta_angle
 
             if start_edge == end_edge:
-                # 시작 모서리에서 시작 모서리로 다시 돌아왔는데 각도는 한바퀴 돌고온거임...
+                # 시작 모서리에서 시작 모서리로 다시 돌아왔는데 각도는 한바퀴 돌고온거임... 필요 없죠?
                 if rotate_angle > 1.5708: # 반시계 방향 회전
                     will_added_point[pnt] = order.pop(start_edge)
                 elif rotate_angle < - 1.5708: # 시계 방향 회전
@@ -574,7 +574,6 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
             # # 각도 -> 진행 
 
-
     def process_result(result):
         '''
         근접하는 선들을 연결
@@ -592,9 +591,9 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
         lines = sort_line_order(lines)
 
-        visualize_groups(lines)
+        # visualize_groups(lines)
 
-        add_vertex(lines)
+        # add_vertex(lines)
 
         # lines = add_vertex(lines)
 
@@ -625,7 +624,6 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
         return group
 
-
     for i in range(rows):
         for j in range(cols):
             if (losDifData[i][j] is not None):
@@ -641,9 +639,12 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     # visualize_groups(result)
     result = process_result(result)
     # print(len(result))
-    visualize_groups(result)
+    # visualize_groups(result)
     print("making animation")
-    visualize_groups_animation(result)
+    # visualize_groups_animation(result)
+
+    polygone_data = PolygonData()
+    polygone_data.addPolygonData(gcs_lng, gcs_lat, gcs_alt, drone_alt, result)
     return result
   
 if __name__ == '__main__':
