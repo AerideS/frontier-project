@@ -1,5 +1,7 @@
 from pymongo import MongoClient 
 
+SERVER_ADDR = 'mongodb://203.255.57.122:27018/'
+
 class Waypoints:
     '''
     Mongodb에서 waypoint의 정보를 관리함
@@ -18,7 +20,7 @@ class Waypoints:
     '''
     
     def __init__(self) -> None:
-        client = MongoClient('mongodb://203.255.57.122:27018/')
+        client = MongoClient(SERVER_ADDR)
         self.db = client['waypoint']
         self.collection = self.db['waypoints']
         self.waypoint_num = 0 # waypoint의 개수
@@ -135,10 +137,23 @@ class Waypoints:
         self.collection.delete_many({})
         self.waypoint_num = 0    
         
-        
 class DroneData:
+    '''
+    드론의 정보 관리
+
+        "drone_data" : [
+        {
+            "drone_id" : 1,
+            "latitude" : 35.12445,
+            "longitude" : 126.12345,
+            "altitude" : 30.0
+
+        }
+    ]
+
+    '''
     def __init__(self) -> None:
-        client = MongoClient('mongodb://203.255.57.122:27018/')
+        client = MongoClient(SERVER_ADDR)
         self.db = client['drone_data1']
 
     def add_device_data(self, drone_id, longitude, latitude, altitude):
@@ -173,8 +188,11 @@ class DroneData:
         self.add_device_data(drone_id, longitude, latitude, altitude)
 
 class TerrainData:
+    '''
+    deprecated!
+    '''
     def __init__(self) -> None:
-        client = MongoClient('mongodb://203.255.57.122:27018/')
+        client = MongoClient(SERVER_ADDR)
         self.db = client['terrain_data']
         self.collection_name = "terrain_data"
         self.collection = self.db[self.collection_name]
@@ -211,8 +229,12 @@ class TerrainData:
         return None
 
 class PolygonData:
+    '''
+    특정 GCS의 위치에 대해 음영지역을 계산한 결과를 저장
+    parameter : GCS 경도, GCS 위도, GCS 고도, 드론 비행 고도
+    '''
     def __init__(self) -> None:
-        client = MongoClient('mongodb://203.255.57.122:27018/')
+        client = MongoClient(SERVER_ADDR)
         self.db = client['polygon_data']
         self.collection = self.db['polygon_data']
     
@@ -236,9 +258,18 @@ class PolygonData:
         self.collection.insert_one(new_point)
     
     def delPolygonData(self, GCS_id):
-        self.collection.delete_one({"GCS_id": GCS_id})
-        
+        self.collection.delete_one({"GCS_id": GCS_id})        
         return True
+    
+    def getPolygonData(self, longitude, latitude, altitude, drone_altitude):
+        '''
+        todo : 구현
+        특정 위도, 경도, 고도, 드론 비행 고도에 해당하는 지점 목록에 대해 반환 
+
+        데이터가 없을 경우 None 반환
+        '''
+
+        pass
     
     def clearPolygon(self):
         self.collection.delete_many({})

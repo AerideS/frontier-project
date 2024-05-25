@@ -6,6 +6,7 @@
         <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
         <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
         <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
         <style>
                 body { margin: 0; padding: 0; }
                 #map {
@@ -43,12 +44,7 @@
                     background-color: #f2f2f2;
                 }
 
-                #controlPanelForm {
-                    position: relative;
-                    left: 1330px;
-                    top: 10px;
-                }
-                #droneActionForm {
+                #controlPanel {
                     position: relative;
                     left: 1330px;
                     top: 10px;
@@ -97,25 +93,127 @@
         </table>
 
         <!-- 드론에 드론정보시스템의 waypoint를 전송 -->
-        <form id="controlPanelForm" action="/submit" method="POST">
-            <div id="controlPanel">
-                <button type="submit">명령전송</button>
-            </div>
-        </form>
+        <div id="controlPanel">
+            <button type="button" onClick="validateAPIKey(CM_TYPE_SUBMIT)">명령전송</button>
+        </div>
 
         <!-- 드론 이륙, 착륙, 열선 작동, -->
-        <form id="droneActionForm" action="/submit" method="POST">
-            <div id="actionPanel">
-                <button type="submit">이륙</button>
-                <button type="submit">착륙</button>
-                <button type="submit">열선 작동</button>
-            </div>
-        </form>
+        <div id="controlPanel">
+            <button type="button" onClick="validateAPIKey(CM_TYPE_TAKEOFF)">이륙</button>
+        </div>
+
+        <div id="controlPanel">
+            <button type="button" onClick="validateAPIKey(CM_TYPE_LAND)">착륙</button>
+        </div>
+
+        <div id="controlPanel">
+            <button type="button" onClick="validateAPIKey(CM_TYPE_HEATER)">열선 작동</button>
+        </div>
 
         <script>
+            mapboxgl.accessToken = "pk.eyJ1IjoibGdoNjk2MyIsImEiOiJjbHRwaWJ5NXAwNjNpMmpwZmo0dzg5MmcyIn0.WRICTXvdHP46wiy2GmLJDw"
             const WP_TYPE_MOVE = 0;
             const WP_TYPE_DROP_AP = 1;
-            mapboxgl.accessToken = "pk.eyJ1IjoibGdoNjk2MyIsImEiOiJjbHRwaWJ5NXAwNjNpMmpwZmo0dzg5MmcyIn0.WRICTXvdHP46wiy2GmLJDw"
+
+            const CM_TYPE_SUBMIT = 0;
+            const CM_TYPE_TAKEOFF = 1;
+            const CM_TYPE_LAND = 2;
+            const CM_TYPE_HEATER = 3;
+
+            // debug
+            // a1 = console.log(hashText('a'))
+            // 키 해시화 함수
+            function hashText(plainText) {
+                const hash = CryptoJS.SHA256(plainText);
+                return hash.toString(CryptoJS.enc.Hex);
+            }
+
+            //validateAPIKey(0)
+            // API 키 검증
+            async function validateAPIKey(cmType) {
+                var APIKey = prompt("Please enter API Key: ", "API Key");
+                const hash = hashText(APIKey);
+                console.log(hash);
+                if (cmType == CM_TYPE_SUBMIT) {
+                    submitCommand(hash);
+                }
+                else if (cmType == CM_TYPE_TAKEOFF) {
+                    takeoffCommand(hash);
+                }
+                else if (cmType == CM_TYPE_LAND) {
+                    landCommand(hash);
+                }
+                else if (cmType == CM_TYPE_HEATER) {
+                    heaterCommand(hash);
+                }
+            }
+
+            // 명령 전송 함수
+            async function submitCommand(hash) {
+                const response = await fetch('http://203.255.57.136:5000/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Submit Permission accepted");
+                }
+                else {
+                    alert("Submit Permission denied");
+                }
+            }
+            async function takeoffCommand(hash) {
+                const response = await fetch('http://203.255.57.136:5000/takeoff', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Take off Permission accepted");
+                }
+                else {
+                    alert("Take off Permission denied");
+                }
+            }
+            async function landCommand(hash) {
+                const response = await fetch('http://203.255.57.136:5000/land', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Take off Permission accepted");
+                }
+                else {
+                    alert("Take off Permission denied");
+                }
+            }
+            async function heaterCommand(hash) {
+                const response = await fetch('http://203.255.57.136:5000/heater', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Take off Permission accepted");
+                }
+                else {
+                    alert("Take off Permission denied");
+                }
+            }
+
             const map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/dark-v11',
@@ -172,7 +270,7 @@
             // 음영지역 탐색 결과를 가져오는 함수
             async function getPolyData() {
                 const response = await fetch(
-                    'http://203.255.57.136:5001/hole?gcs_lat=35.15864&gcs_lng=128.09348&gcs_alt=1.0&flight_alt=1&distance=100',
+                    'http://203.255.57.136:5001/hole?gcs_lat=35.15992&gcs_lng=128.08762&gcs_alt=1.0&flight_alt=1&distance=100',
                     { method: 'GET' }
                 );
                 const jsonData = await response.json();
@@ -416,12 +514,12 @@
                 return data;
             }
 
+            var waypointLength;
             // 웨이포인트 테이블 출력함수
             async function renderTable() {
                 const tableBody = document.querySelector('#waypointTable tbody');
-                // debug
-                console.log(tableBody);
                 var waypointList = await getAllWaypoint();
+                waypointLength = waypointList.length;
                 for (var i = 0; i < waypointList.length; i++) {
                     const row = document.createElement('tr');
                     const idCell = document.createElement('td');
@@ -467,6 +565,22 @@
                     const deleteButton = document.createElement('button');
                     deleteButton.textContent = '삭제';
                     // 삭제 버튼 구동부
+                    async function deleteWP(e) {
+                        data = [idCell.textContent];
+                        const payload = {data: data};
+                        fetch('http://203.255.57.136:5000/deleteWP', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(payload)
+                        });
+                    }
+                    // 삭제 버튼 리스너 추가
+                    deleteButton.addEventListener('click', function() {
+                        deleteWP();
+                        location.reload();
+                    });
 
                     editButtonCell.appendChild(editButton);
                     deleteButtonCell.appendChild(deleteButton);
@@ -484,11 +598,11 @@
 
             // Mapbox 이벤트 리스너
             map.on('load', paintAllRed); 
-            map.on('load', addPolytoLayer);
+            //map.on('load', addPolytoLayer);
             //map.on('load', onLoad);
-            map.on('load', renderTable);
-            map.on('load', updateDropDown);
-            map.on('load', drawLine);
+            //map.on('load', renderTable);
+            //map.on('load', updateDropDown);
+            //map.on('load', drawLine);
             
             
             
@@ -515,9 +629,6 @@
                 new mapboxgl.Marker()
                     .setLngLat(newPoint)
                     .addTo(map);
-
-                // debug
-                console.log(newPoint);
 
                 // newPoint 변수를 Flask로 보내기
                 const response = await fetch('/addWP', {
