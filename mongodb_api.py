@@ -210,6 +210,39 @@ class TerrainData:
             return drone_info.get('altitude')  # 시야 고도를 의미하는 altitude를 반환
         return None
 
+class PolygonData:
+    def __init__(self) -> None:
+        client = MongoClient('mongodb://203.255.57.122:27018/')
+        self.db = client['polygon_data']
+        self.collection = self.db['polygon_data']
+    
+    def _checkExist(self, GCS_id):
+        # 여기서 위도, 경도, 고도는 GCS의 위도, 경도, 고도이다.
+        collection = self.db["polygon_data"]
+        data = collection.find_one({'GCS_id': GCS_id},{"_id": 0})
+        return data
+
+    def addPolygonData(self, longitude, latitude, altitude, drone_altitude, polygon_list):
+        max_id = self.collection.find_one(sort=[("GCS_id", -1)])  # 현재 가장 큰 GCS_id를 찾음
+        new_GCS_id = 1 if not max_id else max_id["GCS_id"] + 1
+        new_point={
+            "GCS_id": new_GCS_id,
+            "latitude": latitude,
+            "longitude": longitude,
+            "altitude": altitude,
+            "drone_altitude": drone_altitude,
+            "polygon_list": polygon_list
+        }
+        self.collection.insert_one(new_point)
+    
+    def delPolygonData(self, GCS_id):
+        self.collection.delete_one({"GCS_id": GCS_id})
+        
+        return True
+    
+    def clearPolygon(self):
+        self.collection.delete_many({})
+        
 
 if __name__ == '__main__':
     # drone_data = DroneData()
@@ -223,6 +256,7 @@ if __name__ == '__main__':
     waypoint = Waypoints()
     dronedata=DroneData()
     terraindata=TerrainData()
+    polygondata=PolygonData()
     # waypoint.clearWaypoint()
     # waypoint.addWaypoint("move", 111.111, 222.222)
     # waypoint.addWaypoint("move", 222.222, 222.222)
@@ -246,10 +280,17 @@ if __name__ == '__main__':
     # dronedata.update_device_data(1, 222, 333, 444)
     # print('getDeviceList: ', dronedata.getDeviceList())
     # print('getDeviceList: ', dronedata.get_device_data(2))
-    terraindata.addHeight(1,2,3)
-    terraindata.addLos(1,2,4)
-    print("_checkExist: ", terraindata._checkExist(1,2))
-    print("getHeight: ", terraindata.getHeight("drone1"))
-    print("getLos: ", terraindata.getLos("drone1"))
+    # polygondata.addPolygonData(123.456,78.910,100,50,[[[126.9779, 37.5664], [126.9781, 37.5666], [126.9780, 37.5665]],[[126.9790, 37.5670], [126.9792, 37.5672], [126.9791, 37.5671]]])
+    # data = polygondata._checkExist(GCS_id=1)
+    # print("추가된 데이터:", data)
+    # polygondata.delPolygonData(2)
+    polygondata.clearPolygon()
+    # print("모든 다각형 데이터 삭제됨")
+    # terraindata.addHeight(1,2,3)
+    # terraindata.addLos(1,2,4)
+    # print("_checkExist: ", terraindata._checkExist(1,2))
+    # print("getHeight: ", terraindata.getHeight("drone1"))
+    # print("getLos: ", terraindata.getLos("drone1"))
     
+
     # print(waypoint.getWayPointList())

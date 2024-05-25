@@ -158,8 +158,8 @@ class MqReceiver:
     
     '''
     
-    def __init__(self, exchange, server_ip) -> None:
-        self.exchange_name = exchange
+    def __init__(self, queue_name, server_ip) -> None:
+        self.queue_name = queue_name
         self.server_ip = server_ip
         self.connect_Server()
         self.createQueue()
@@ -172,13 +172,10 @@ class MqReceiver:
         self.connection = pika.BlockingConnection(pika.ConnectionParameters(self.server_ip))
         self.channel = self.connection.channel()
 
-        #exchange 선언
-        self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='topic')
-
     def createQueue(self):
 
         #큐 생성
-        result=self.channel.queue_declare(queue=self.exchange_name, durable=True) 
+        result=self.channel.queue_declare(queue=self.queue_name, durable=True) 
         #durable=True : 큐가 영속적인 것의 의미, 해당 큐를 디스크에 저장하고, 서버가 재시작되어도 큐와 큐에 포함된 메시지가 유지
         
         # #임시 큐 생성
@@ -191,7 +188,7 @@ class MqReceiver:
 
         #바인딩
         for binding_key in binding_keys:
-            self.channel.queue_bind(exchange=self.exchange_name, queue=queue_name, routing_key=binding_key)
+            self.channel.queue_bind(exchange=self.queue_name, queue=queue_name, routing_key=binding_key)
 
         
     def callback(self, ch, method, properties, body):
@@ -238,9 +235,10 @@ class MqReceiver:
         else:
             print(f" [x] Received unknown message: {routing_key}: {dictionary_body}")
         
+
     def start(self):
         # 메시지 수신
-        self.channel.basic_consume(queue=self.exchange_name, on_message_callback=self.callback, auto_ack=True)
+        self.channel.basic_consume(queue=self.queue_name, on_message_callback=self.callback, auto_ack=True)
         print(187)
         # 메시지 처리 시작
         self.channel.start_consuming()
@@ -252,7 +250,7 @@ class MqReceiver:
         method_frame, header_frame, body = None, None, None
         print("waiting for message")
         while True:
-            method_frame, header_frame, body = self.channel.basic_get(queue=self.exchange_name, auto_ack=True)
+            method_frame, header_frame, body = self.channel.basic_get(queue=self.queue_name, auto_ack=True)
             if method_frame:
                 break
             
@@ -282,8 +280,8 @@ class MqSender:
         
         # todo, 대상 이름 지정할 수 있도록 할 것
     '''
-    def __init__(self, exchange, server_ip) -> None:
-        self.exchange_name = exchange
+    def __init__(self, queue_name, server_ip) -> None:
+        self.queue_name = queue_name
         self.server_ip = server_ip
         self.connect_Server()
     
@@ -294,13 +292,13 @@ class MqSender:
         self.channel = self.connection.channel()
 
         #exchange 선언
-        self.exchange =  self.channel.exchange_declare(exchange=self.exchange_name, exchange_type='topic')
+        self.exchange =  self.channel.exchange_declare(exchange=self.queue_name, exchange_type='topic')
         
         binding_keys = ["frontier.*"]
 
         #바인딩
         for binding_key in binding_keys:
-            self.channel.queue_bind(self.exchange_name, self.exchange_name, routing_key=binding_key)
+            self.channel.queue_bind(self.queue_name, self.queue_name, routing_key=binding_key)
         
     #메시지 전송 함수
     def send_message(self, message_type, data=None):
@@ -311,8 +309,8 @@ class MqSender:
         
 
         #메시지 송신
-        self.channel.basic_publish(exchange=self.exchange_name, routing_key=routing_key, body=message)
-        print(f" Sent message: {message} to {self.exchange_name}")
+        self.channel.basic_publish(exchange=self.queue_name, routing_key=routing_key, body=message)
+        print(f" Sent message: {message} to {self.queue_name}")
         
     def arm(self):
         # todo ... 명령별로 함수 구성 및 파라미터 받도록 해야 함
@@ -370,7 +368,18 @@ class MqSender:
         }
         self.send_message("startDrop", message)
 
+    def cutString(self):
+        message = {
+            'type' : 'cutString'
+            }
+        self.send_message("cutString", message)
 
+    def startReel(self):
+        message = {
+            'type' : 'startReel'
+        }
+        self.send_message("startReel", message)
+        
     def close(self):
         self.connection.close()
 

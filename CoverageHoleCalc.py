@@ -12,6 +12,9 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
+JUMP_GAP = 0.00002
+CLOSE_GAP = 0.00003
+
 terrain_data = FileToAlt()
 
 def calculate_diagonal_length(start_lat, start_lng, end_lat, end_lng):
@@ -19,7 +22,6 @@ def calculate_diagonal_length(start_lat, start_lng, end_lat, end_lng):
     특정 두 지점 사이의 거리를 계산함
     '''
     return math.sqrt(abs(start_lat-end_lat)**2 + abs(start_lng-end_lng)**2)
-
 
 def calculationLos(gcs_latitude, gcs_longitude, gcs_altitude, unit = 1, flight_alt = None, distance = 90):
     # GCS에서 각 지점까지 직선의 기울기를 포함함
@@ -72,8 +74,9 @@ def calculationLos(gcs_latitude, gcs_longitude, gcs_altitude, unit = 1, flight_a
 
         # print('cur', cur_lat, cur_lng, cur_height, cur_slope, 'prv', prev_lat, prev_lng, prev_slope, 'gcs', gcs_latitude, gcs_longitude, gcs_height, distance_to_gsc, 'result', max_slope, los_Height)
 
-    return losData, losDifData 
+    losDifData.setData(gcs_latitude, gcs_longitude, float('INF'))
 
+    return losData, losDifData 
 
 def calculation(ax, gcs_latitude, gcs_longitude, gcs_altitude, unit = 1, distance = 30):
     slopeData = PointData(distance, gcs_latitude, gcs_longitude, unit)
@@ -109,7 +112,7 @@ def calculation(ax, gcs_latitude, gcs_longitude, gcs_altitude, unit = 1, distanc
         max_slope = max(cur_slope, prev_slope)
         # print(slopeData.getData(35.15638, 128.07373))
         slopeData.setData(cur_lat, cur_lng, max_slope)
-        # print(slopeData.getData(35.15638, 128.07373))
+        # print(slopeData.getData(35.15638, 128.07373))``
         los_Height = gcs_height + max_slope*distance_to_gsc
 
         ax.scatter(cur_lat, cur_lng, los_Height, c='b')
@@ -164,40 +167,300 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     los, losDif = calculationLos(gcs_latitude=gcs_lat, gcs_longitude=gcs_lng, 
                                          gcs_altitude=gcs_alt, unit=unit, flight_alt=drone_alt, distance=distance)
 
+    min_lat = gcs_lat - distance*unit*0.00001
+    min_lng = gcs_lng - distance*unit*0.00001
+    max_lat = gcs_lat + distance*unit*0.00001
+    max_lng = gcs_lng + distance*unit*0.00001
 
     # for i, single_points in enumerate(losDifData.point_Data):
     #     for j, single_point in enumerate(single_points):
     
     losDifData = losDif.point_Data
 
-    print(len(losDifData))
-    # input()
+    # print(losDifData)
+    # input()8
     if not losDifData:
         return []
 
     rows, cols = len(losDifData), len(losDifData[0])
     visited = [[False] * cols for _ in range(rows)]
     result = []
+    # directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+    directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
 
     def is_valid(x, y):
         return 0 <= x < rows and 0 <= y < cols
-
-    def has_adjacent_zero(x, y):
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]  # 상하좌우
-        for dx, dy in directions:
-            nx, ny = x + dx, y + dy
-            if is_valid(nx, ny) and losDifData[nx][ny] > 0:
-                return True
-        return False
+    
+    def is_visited(x, y):
+        return visited[x,y]
     
     def coordConvert(lat, lng):
         real_lat = round(gcs_lat + (lat - distance + 1) * 0.00001 * unit, 5)
         real_lng = round(gcs_lng + (lng - distance + 1) * 0.00001 * unit, 5)
 
         return (real_lng, real_lat)
+    
+    # def nearest_neighbor_sort(points):
+    #     points = np.array(data)
+    #     remaining = points.tolist()
+    #     sorted_points = [remaining.pop(0)]
+        
+    #     while remaining:
+    #         last_point = sorted_points[-1]
+    #         distances = [distance.euclidean(last_point, point) for point in remaining]
+    #         nearest_index = np.argmin(distances)
+    #         sorted_points.append(remaining.pop(nearest_index))
+        
+    #     return np.array(sorted_points)
+    
+    def coordRevert(lat, lng):
+        coord_x = int(round((lng - gcs_lng)*100000 / unit, 5))
+        coord_y = int(round((lat - gcs_lat)*100000 / unit, 5))
+
+        return coord_x, coord_y
+    
+    def visualize_groups(groups):
+        plt.figure(figsize=(14,14))
+        plt.xlim(gcs_lng - distance*unit*0.00001, gcs_lng + distance*unit*0.00001)
+        plt.ylim(gcs_lat - distance*unit*0.00001, gcs_lat + distance*unit*0.00001)
+        plt.scatter(gcs_lng, gcs_lat, c='r')
+
+        for point_list in groups:
+            lat_points = [point[1] for point in point_list]
+            lng_points = [point[0] for point in point_list]
+            plt.scatter(lng_points, lat_points)
+
+        plt.xticks(fontsize=18)
+        current_values = plt.gca().get_xticks()
+        plt.gca().set_xticklabels(['{:.5f}'.format(x) for x in current_values])
+        plt.yticks(fontsize=18)
+        current_values = plt.gca().get_yticks()
+        plt.gca().set_yticklabels(['{:.5f}'.format(x) for x in current_values])
+        
+        plt.grid(True, which='both', color='gray', linewidth=0.5, linestyle='--')
+        plt.xlabel('Longitude(deg)', fontsize=18)
+        plt.ylabel('Latitude(deg)', fontsize=18)
+        
+        plt.savefig(f'./polygone/polygoneFinder_{gcs_lat}_{gcs_lng}_{gcs_alt}__{str(datetime.now().timestamp())}.png')
+        plt.show()
+    
+    def visualize_groups_animation(result):
+
+        new_result = []
+        for point in result:
+            new_result.append(point)
+
+        print(new_result)
+        # new_result = new_result[0]
+        fig, ax = plt.subplots()
+        scat = ax.scatter([], [])
+
+        print('new_result', new_result)
+        # plt.figure(figsize=(14,14))
+        plt.xlabel('Latitude (deg)', fontsize=8)
+        plt.ylabel('Longitude (deg)', fontsize=8)
+        plt.xlim(gcs_lng - distance*unit*0.00001, gcs_lng + distance*unit*0.00001)
+        plt.ylim(gcs_lat - distance*unit*0.00001, gcs_lat + distance*unit*0.00001)
+        plt.xticks(fontsize=12)
+        current_values = plt.gca().get_xticks()
+        plt.gca().set_xticklabels(['{:.5f}'.format(x) for x in current_values])
+        plt.yticks(fontsize=12)
+        current_values = plt.gca().get_yticks()
+        plt.gca().set_yticklabels(['{:.5f}'.format(x) for x in current_values])
+
+        def update(frame):
+            current_data = new_result[:frame + 1]
+            x_data = [point[0] for point in current_data]
+            y_data = [point[1] for point in current_data]
+            # print(x_data, y_data)
+            # if frame > 2:
+                # print(distance_calc((x_data[-1], y_data[-1]), (x_data[-2], y_data[-2]) ))
+            scat.set_offsets(np.column_stack((x_data, y_data)))
+            return scat,
+
+        ani = FuncAnimation(fig, update, frames=range(len(new_result)), interval=50)
+        ani.save(f'./polygone/hole_polygone_{lat}_{lng}_{alt}__{unit}_{str(datetime.now().timestamp())}.gif')
+        plt.show()
+        
+    def has_adjacent(x, y):
+        for dx, dy in directions:
+            nx, ny = x + dx, y + dy
+            if is_valid(nx, ny):
+                if losDifData[nx][ny] is None: # None MEANS GCS POINT!
+                    return False
+                elif losDifData[nx][ny] < 0:
+                    return True
+        return False
+    
+    def get_neighbor(x, y):
+        return [(x-1, y), (x-1, y-1), (x, y-1), (x+1, y), (x+1, y+1), (x+1, y-1), (x, y+1), (x+1, y+1)]
+
+    def distance_calc(p1, p2):
+        return np.sqrt((p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2)
+
+    def get_sorted(points : list): #key=lambda p: distance_calc(p, last_point)
+        left_lower = min(points, key=lambda p: distance_calc(p, (min_lng, min_lat)))
+        left_upper = min(points, key=lambda p: distance_calc(p, (min_lng, max_lat)))
+        right_lower = min(points, key=lambda p: distance_calc(p, (max_lng, min_lat)))
+        right_upper = min(points, key=lambda p: distance_calc(p, (max_lng, max_lat)))
+
+        # gap_lst = [round(cur_min_lng_pnt[0] - min_lng, 5), round(max_lng - cur_max_lng_pnt[0], 5),
+        #            round(cur_min_lat_pnt[1] - min_lat, 5), round(max_lat - cur_max_lat_pnt[1], 5)]
+        
+        gap_lst = [distance_calc(left_lower, (min_lng, min_lat)), distance_calc(left_upper, (min_lng, max_lat)),
+                   distance_calc(right_lower, (max_lng, min_lat)), distance_calc(right_upper, (max_lng, max_lat))]
+        
+        print(gap_lst)
+
+        min_gap = min(gap_lst)
+
+        if min_gap == gap_lst[0]:
+            return left_lower
+        elif min_gap == gap_lst[1]:
+            return left_upper
+        elif min_gap == gap_lst[2]:
+            return right_lower
+        elif min_gap == gap_lst[3]:
+            return right_upper
 
 
+    def seperate_points(points : list):
+        #todo 경도 순 정렬 -> 가장 작은거를 pop 해서 시작점으로
+
+        sorted_points = [get_sorted(points)]
+
+        points.remove(sorted_points[0])
+
+        # sorted_points = [points.pop(0)]  # 임의의 시작점 (여기서는 첫 번째 점)
+        while points:
+            last_point = sorted_points[-1]
+            next_point = min(points, key=lambda p: distance_calc(p, last_point))
+
+            dist = distance_calc(last_point, next_point) 
+            if dist > JUMP_GAP:
+                print(dist)
+                next_point = get_sorted(points)
+                print('next_point', next_point)
+
+            points.remove(next_point)
+            sorted_points.append(next_point)
+
+
+        return sorted_points
+    
+    def sort_direction(lines):
+        pass
+
+    
+    def process_result(result):
+        seperated = [] # 분리된 선들의 집합 
+        seperated_line = [] # 선을 구성하는 지점들의 집합
+        merged_lines = []
+
+        for single_line in result:
+            merged_lines += single_line
+
+        print('merged_lines', merged_lines)
+        
+        # for single_line in result:
+        # print('single_line', single_line)
+        merged_lines = seperate_points(merged_lines)
+
+        # visualize_groups_animation(merged_lines)
+        
+        
+        # seperated_line = [merged_lines[0]]
+        # merged_lines.remove(seperated_line[0])
+
+        # while merged_lines:
+        #     last_point = seperated_line[-1]
+        #     next_point = min(merged_lines, key=lambda p: distance_calc(p, last_point))
+
+        # #     seperated_line.append(next_point)
+        # #     merged_lines.remove(next_point)
+        # # seperated.append(seperated_line)
+        #     dist = distance_calc(last_point, next_point) 
+        #     if dist > JUMP_GAP:
+        #         seperated.append(seperated_line)
+        #         seperated_line = [next_point]
+        #     else:
+        #         seperated_line.append(next_point)
+        #         merged_lines.remove(next_point)
+
+        # seperated.append(seperated_line)
+
+        # print('-------------------')
+        # node = []
+        # for i in seperated:
+        #     print(i[0], i[-1])
+        #     node.append((i[0], i[-1]))
+        # print(len(node))
+
+        # connected = []
+
+        # while seperated:
+        #     cur_comp = seperated.pop()
+
+        #     for nxt_comp in seperated:
+        #         if distance_calc(cur_comp[0], nxt_comp[0]) <= CLOSE_GAP:
+        #             cur_comp = list(reversed(cur_comp)) + nxt_comp
+        #             print("connected", cur_comp[0], nxt_comp[0])
+        #             seperated.remove(nxt_comp)
+        #             continue
+        #         elif distance_calc(cur_comp[0], nxt_comp[-1]) <= CLOSE_GAP:
+        #             cur_comp = list(reversed(cur_comp)) + list(reversed(nxt_comp))
+        #             print("connected", cur_comp[0], nxt_comp[-1])
+        #             seperated.remove(nxt_comp)
+        #             continue
+        #         elif distance_calc(cur_comp[-1], nxt_comp[-1]) <= CLOSE_GAP:
+        #             cur_comp = cur_comp + nxt_comp
+        #             print("connected", cur_comp[-1], nxt_comp[-1])
+        #             seperated.remove(nxt_comp)
+        #             continue
+        #         elif distance_calc(cur_comp[-1], nxt_comp[0]) <= CLOSE_GAP:
+        #             cur_comp = cur_comp + list(reversed(nxt_comp))
+        #             print("connected", cur_comp[-1], nxt_comp[0])
+        #             seperated.remove(nxt_comp)
+        #             continue
+            
+        #     connected.append(cur_comp)
+
+        # print('-------------------')
+        # node = []
+        # for i in connected:
+        #     print(i[0], i[-1])
+        #     node.append((i[0], i[-1]))
+        # print(len(node))
+
+        # '''
+        # 이중 FOR문, 끝점이 잘못 설정된 경우
+        #     1. 모든 connected의 끝점에 대해
+        #         2. 각 직선의 끝점과 직선 내의 지점과의 거리를 비교하여
+        #         직선 내의 지점이 더 가깝다면
+        #         해당 지점을 직선의 끝점으로 간주하고 다시 점 정렬
+        # '''
+        # # for i, single_line in enumerate(connected):
+        # #     for j, single_line_comp in enumerate(connected):
+        # #         if i == j:
+        # #             continue
+                
+        # #         min_dist_0 = min(single_line_comp, key=lambda p: distance_calc(p, single_line[0]))
+        # #         min_dist_1 = min(single_line_comp, key=lambda p: distance_calc(p, single_line[1]))
+
+        # #         # if min(min_dist_0, min_dist_1) < 0.00005:
+    
+
+
+
+        # return connected
+        return merged_lines
+    
     def dfs(x, y):
+        '''
+        0보다 작은 지점에 대해 시작
+        이웃 중 0보다 작은 지점이 있으면 group에 추가 
+        추가한 지점과 현재 지점에 대해 공통되는 이웃 중 0보다 큰 지점을 다음 방문 지점 stack에 추가
+        '''
         stack = [(x, y)]
         group = []
         while stack:
@@ -205,50 +468,37 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
             if visited[cx][cy]:
                 continue
             visited[cx][cy] = True
-            if has_adjacent_zero(cx, cy):
-                group.append(coordConvert(cx, cy))
-            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
+            if has_adjacent(cx, cy):
+                group.append(coordConvert(cx,cy))
+            for dx, dy in directions:
                 nx, ny = cx + dx, cy + dy
-                if is_valid(nx, ny) and not visited[nx][ny] and losDifData[nx][ny] < 0:
-                    stack.append((nx, ny))
-        return group
-    
-    def visualize_groups(groups):
-        plt.xlim(gcs_lng - distance*unit*0.00001, gcs_lng + distance*unit*0.00001)
-        plt.ylim(gcs_lat - distance*unit*0.00001, gcs_lat + distance*unit*0.00001)
-        plt.scatter(gcs_lng, gcs_lat, c='r')
-        for point_list in groups:
-            lat_points = [point[0] for point in point_list]
-            lng_points = [point[1] for point in point_list]
-            plt.scatter(lng_points, lat_points)
+                if is_valid(nx, ny):
+                    if losDifData[nx][ny] is None:
+                        stack.append((nx, ny))
+                    elif (not visited[nx][ny] and losDifData[nx][ny] > 0):
+                        stack.append((nx, ny))
 
-        plt.xticks(fontsize=12)
-        current_values = plt.gca().get_xticks()
-        plt.gca().set_xticklabels(['{:.5f}'.format(x) for x in current_values])
-        plt.yticks(fontsize=12)
-        current_values = plt.gca().get_yticks()
-        plt.gca().set_yticklabels(['{:.5f}'.format(x) for x in current_values])
-        
-        plt.grid(True, which='both', color='gray', linewidth=0.5, linestyle='--')
-        plt.xlabel('Longitude(deg)')
-        plt.ylabel('Latitude(deg)')
-        # plt.gca().invert_yaxis()
-        
-        plt.savefig(f'polygoneFinder_{str(datetime.now().timestamp())}.png')
-        plt.show()
+        return group
 
 
     for i in range(rows):
         for j in range(cols):
             if (losDifData[i][j] is not None):
-                if (losDifData[i][j] < 0) and (not visited[i][j]):
+                # 통신 가능 지점에서 탐색 시작
+                if (losDifData[i][j] > 0) and (not visited[i][j]): 
                     group = dfs(i, j)
-                    # if any(has_adjacent_zero(x, y) for x, y in group):
                     if group:
-                        result.append(group)
+                        # group = addAdditonPoint(group)
+                        result.append(seperate_points(group))
 
+    # print(visited)
     print(result)
+    # visualize_groups(result)
+    result = process_result(result)
+    print(len(result))
     visualize_groups(result)
+    print("making animation")
+    # visualize_groups_animation(result)
     return result
   
 if __name__ == '__main__':
@@ -261,11 +511,18 @@ if __name__ == '__main__':
     # calculation(35.15638, 128.07373)
     # calculation(35.15162, 128.08432) #35.151623°N 128.084322°E
     # 
-    lat = 35.16223
-    lng = 128.08989
+    # case 1----------------------------
+    # lat = 35.16223
+    # lng = 128.08989
     alt = 1.0    
     distance = 90
     unit = 1
+    # case 2----------------------------
+    lat = 35.16258
+    lng = 128.09260
+    # case 3----------------------------
+    # lat = 35.15992
+    # lng = 128.08762
     # showGraph(lat, lng, alt, 1, 1, distane=distance)
     polygone = getPolygone(lat, lng, alt, 1, 1, distance)
     # visualize_matrix(distance, polygone)

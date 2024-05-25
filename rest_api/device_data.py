@@ -1,4 +1,4 @@
-from flask import request
+from flask import Flask, request, jsonify
 from flask_restx import Resource, Api, Namespace
 
 import os
@@ -6,7 +6,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from mongodb_api import DroneData
-from mqapi import MqReceiverAsync
+from mqapi import MqReceiver
+import gevent
 
 device_data = DroneData()
 
@@ -14,6 +15,12 @@ Devices  = Namespace(
     name="Devices",
     description="APIs for getting and updating data of Devices",
 )
+
+receiver = MqReceiver("SERVER", "localhost") #큐 이름, 서버 주소
+
+
+
+
 
 @Devices.route('')
 class DeviceInfo(Resource):
@@ -37,3 +44,4 @@ class DevicesInfoSpec(Resource):
         device_data.update_device_data(device_id, data['longitude'], data['latitude'], data['altitude'])
         
         return {'put' : 'success'}
+    
