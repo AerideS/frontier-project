@@ -1,7 +1,8 @@
 # app.py
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, jsonify
 from flask_cors import CORS
 import requests, json
+import mqapi
 
 #Flask 객체 인스턴스 생성
 app = Flask(__name__)
@@ -46,25 +47,64 @@ def edit_waypoint():
   # waypoint ID, longitude, latitude 
   data = request.json
   print(data[0])
-  response = requests.put(REST_IP_WAYPOINT + '/' + str(data[0]), json=data)
-  return render_template('service.html')
+  response = requests.put(REST_IP_WAYPOINT + '/' + data[0], json=data)
+  return render_template('service.html', selectDevice=selectDevice)
 
-## debug
-# 계산된 폴리곤 가져오기
-@app.route('/getPoly', methods=['GET'])
-def fetch_polygon():
-  lat = 35.16223
-  lng = 128.08989
-  alt = 1.0    
-  distance = 90
-  unit = 1
-
-  payload = {'gcs_lat': lat, 'gcs_lng': lng, 'gcs_alt': alt, 'flight_alt': unit, 'distance': distance}
-  response = requests.post(REST_IP_HOLE, json=payload)
+@app.route('/deleteWP', methods=['POST'])
+def delete_waypoint():
+  data = request.json
+  response = requests.delete(REST_IP_WAYPOINT + '/' + data['data'][0])
   print(response)
-  return render_template('main.html')
+  return render_template('service.html', selectDevice=selectDevice)
+  
+@app.route('/submit', methods=['POST']) 
+def submit_command():
+  data = request.json
+  hash = data['hash']
+  print(hash)
+  if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
+    print('permission accepted')
+    return jsonify({"status": "accepted"})
+  else:
+    print('permission denied')
+    return jsonify({"status": "denied"})
 
 
+@app.route('/takeoff', methods=['POST']) 
+def takeoff_command():
+  data = request.json
+  hash = data['hash']
+  print(hash)
+  if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
+    print('permission accepted')
+    return jsonify({"status": "accepted"})
+  else:
+    print('permission denied')
+    return jsonify({"status": "denied"})
+
+@app.route('/land', methods=['POST']) 
+def land_command():
+  data = request.json
+  hash = data['hash']
+  print(hash)
+  if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
+    print('permission accepted')
+    return jsonify({"status": "accepted"})
+  else:
+    print('permission denied')
+    return jsonify({"status": "denied"})
+  
+@app.route('/heater', methods=['POST']) 
+def heater_command():
+  data = request.json
+  hash = data['hash']
+  print(hash)
+  if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
+    print('permission accepted')
+    return jsonify({"status": "accepted"})
+  else:
+    print('permission denied')
+    return jsonify({"status": "denied"})
 
 if __name__ == "__main__":
   app.run(debug=True, host='0.0.0.0', port=5000)

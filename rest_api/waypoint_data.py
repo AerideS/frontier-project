@@ -60,7 +60,6 @@ class WaypointInfoSpec(Resource):
         
     def delete(self, waypoint_id):
         result = waypoint_data.delWaypoint(waypoint_id)
-        
         if result:
             return {
                 'delete' : 'failed'
