@@ -465,8 +465,11 @@ class Drone:
         '''
         드론의 현재 상태를 서버로 전송
         현재 시간, 장치명, 위치, 속도, 배터리 정보에 관한 정보 전송
+
+        type : status, ... 
         '''
         data =  {
+            "type" : "status",
             "time" : datetime.now().timestamp(),
             "device" : self.device_name,
             "position" : {
