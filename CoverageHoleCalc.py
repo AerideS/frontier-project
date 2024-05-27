@@ -514,13 +514,12 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
             모서리가 뛰지 않는 경우 넘기기
         끝난 경우 시작 지점 사이에 모서리 추가
         '''
-        
+        visited_vertex = [False, False, False, False]
         will_added_point = [None * len(lines)]
 
         pnt = 0
-        prev_edge = None
         while pnt < len(lines):
-            order = [0, 1, 2, 3]
+            order = [0, 1, 2, 3] # 1사분면, 2사분면, 3사분며느 4사분면
             rotate_angle = 0
             start_edge = get_edge_num(lines[pnt][0])
             end_edge = get_edge_num(lines[pnt][-1])
@@ -544,6 +543,8 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
                 # 시작 모서리에서 시작 모서리로 다시 돌아왔는데 각도는 한바퀴 돌고온거임... 필요 없죠?
                 if rotate_angle > 1.5708: # 반시계 방향 회전
                     will_added_point[pnt] = order.pop(start_edge)
+                    visited_vertex = [True, True, True, True]
+                    
                 elif rotate_angle < - 1.5708: # 시계 방향 회전
                     will_added_point[pnt] = order.pop(start_edge)
 
@@ -574,30 +575,18 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
             # # 각도 -> 진행 
 
-    def apply_vertex(lines):
+    # def apply_vertex(lines):
         
-        qurd = [False, False, False, False] # 각각 1, 2, 3, 4 분면
-        
-        for single_line in lines:
-            start_point = single_line[0]
-            end_point = single_line[-1]
+    #     right_upper = (max_lng, max_lat)
+    #     right_lower = (max_lng, min_lng)
 
-            if distance_calc(start_point, end_point) < JUMP_GAP:
-                continue
-            
-            for single_point in single_line:
-                if single_point[0] >= gcs_lng:
-                    if single_point[1] >= gcs_lat:
-                        qurd[0] = True
-                    else:
-                        qurd[3] = True
+    #     left_upper = (min_lng, max_lat)
+    #     left_lower = (min_lng, min_lat)
 
-                else:
-                    if single_point[1] >= gcs_lat:
-                        qurd[1] = True
-                    else:
-                        qurd[2] = True
+    #     ptr = (gcs_lng, gcs_lat)
 
+    #     while True:
+    #         if ptr
 
 
     def process_result(result):
