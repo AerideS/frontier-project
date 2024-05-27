@@ -254,7 +254,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         plt.xlabel('Longitude(deg)', fontsize=18)
         plt.ylabel('Latitude(deg)', fontsize=18)
         
-        plt.savefig(f'./polygone/polygoneFinder_{gcs_lat}_{gcs_lng}_{gcs_alt}__{str(datetime.now().timestamp())}.png')
+        plt.savefig(f'../polygone/polygoneFinder_{gcs_lat}_{gcs_lng}_{gcs_alt}__{str(datetime.now().timestamp())}.png')
         plt.show()
     
     def visualize_groups_animation(result):
@@ -292,7 +292,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
             return scat,
 
         ani = FuncAnimation(fig, update, frames=range(len(new_result)), interval=50)
-        ani.save(f'./polygone/hole_polygone_{lat}_{lng}_{alt}__{unit}_{str(datetime.now().timestamp())}.gif')
+        ani.save(f'../polygone/hole_polygone_{lat}_{lng}_{alt}__{unit}_{str(datetime.now().timestamp())}.gif')
         plt.show()
         
     def has_adjacent(x, y):
@@ -507,22 +507,27 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         elif (angle >=  5.4978) or (angle <= 0.7854):
             return 3      
 
-    def add_vertex(lines):
+    def get_unvisited_vertex(lines):
         '''
         각 지점에 선 단위로 각도 얻어냄 -> 회전 방향 알아냄 : 시계, 반시계        
         다음 선으로 이동할 때, 모서리가 뛰는 경우 점 추가
             모서리가 뛰지 않는 경우 넘기기
         끝난 경우 시작 지점 사이에 모서리 추가
         '''
+        # print(lines)
         visited_vertex = [False, False, False, False]
-        will_added_point = [None * len(lines)]
 
         pnt = 0
         while pnt < len(lines):
-            order = [0, 1, 2, 3] # 1사분면, 2사분면, 3사분며느 4사분면
+            print(lines[pnt])
             rotate_angle = 0
             start_edge = get_edge_num(lines[pnt][0])
             end_edge = get_edge_num(lines[pnt][-1])
+
+            if distance_calc(lines[pnt][0], lines[pnt][-1]) < JUMP_GAP:
+                # 시작점과 종료점이 유사하여 loop를 형성한 것으로 보이는 경우 넘어가기
+                pnt += 1
+                continue
 
             for i in range(len(lines[pnt]) - 1):
                 cur = get_degree(lines[pnt][i])
@@ -542,38 +547,68 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
             if start_edge == end_edge:
                 # 시작 모서리에서 시작 모서리로 다시 돌아왔는데 각도는 한바퀴 돌고온거임... 필요 없죠?
                 if rotate_angle > 1.5708: # 반시계 방향 회전
-                    will_added_point[pnt] = order.pop(start_edge)
-                    visited_vertex = [True, True, True, True]
+                    for i in range(4):
+                        visited_vertex[i] = True if visited_vertex[i] is False else True
                     
                 elif rotate_angle < - 1.5708: # 시계 방향 회전
-                    will_added_point[pnt] = order.pop(start_edge)
+                    for i in range(4):
+                        visited_vertex[i] = True if visited_vertex[i] is False else True
 
+            else:
+                # 그 외에 시작 모서리와 종료 모서리가 다른 경우
+                # 방문한 꼭지점에 대해 방문 여부 추가
+                if rotate_angle > 1.5708: # 반시계 방향 회전
+                    num_rotate = (start_edge - end_edge) # 거쳐간 모서리의 개수 계산을 위함
+                    if num_rotate < 0:
+                        num_rotate = 4 + num_rotate
+                    
+                    this_edge = start_edge
+                    while num_rotate > 0:
+                        if this_edge < 0:
+                            visited_vertex[4 + this_edge] = True
+                        else:
+                            visited_vertex[this_edge] = True
+
+                        num_rotate -= 1
+                        this_edge -= 1
+
+                elif rotate_angle < -1.5708: # 반시계 방향 회전
+                    num_rotate = (start_edge - end_edge)
+                    if num_rotate < 0:
+                        num_rotate = 4 + num_rotate
+                    
+                    this_edge = start_edge
+                    while num_rotate > 0:
+                        if this_edge < 0:
+                            visited_vertex[4 + this_edge] = True
+                        else:
+                            visited_vertex[this_edge] = True
+
+                        num_rotate -= 1
+                        this_edge -= 1
+            print(visited_vertex)
             print(rotate_angle, '----------------------')
 
             pnt += 1
 
-            # if rotate_angle > 6.2832 : # 반시계 방향으로 360도 이상
-            #     pass
-            # elif rotate_angle > 4.7124 : # 반시계 방향으로 360~270
-            #     pass
-            # elif rotate_angle > 3.1416 : # 반시계 방향으로 270~180
-            #     pass
-            # elif rotate_angle > 1.5708 : # 반시계 방향으로 180~90
-            #     pass
-            # elif rotate_angle > 0 : # 반시계 방향으로 90~0도 이상
-            #     pass
-            # elif rotate_angle > -1.5708 : # 시계 방향으로 0~90
-            #     pass
-            # elif rotate_angle > -3.1416 : # 반시계 방향으로 90~180
-            #     pass
-            # elif rotate_angle > -4.7124 : # 반시계 방향으로 180~270
-            #     pass
-            # elif rotate_angle > -6.2832 : # 반시계 방향으로 270~360
-            #     pass
-            # elif rotate_angle < 6.2832 : # 반시계 방향으로 360도 이상
-            #     pass
+        print(visited_vertex)
 
-            # # 각도 -> 진행 
+        will_visit = []
+
+        if visited_vertex[0]:
+            will_visit.append((max_lng, max_lat))
+
+        if visited_vertex[1]:
+            will_visit.append((min_lng, max_lat))
+
+        if visited_vertex[2]:
+            will_visit.append((min_lng, min_lat))
+
+        if visited_vertex[3]:
+            will_visit.append((max_lng, min_lat))
+
+        return will_visit    
+
 
     # def apply_vertex(lines):
         
@@ -588,6 +623,19 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     #     while True:
     #         if ptr
 
+    def add_vertex(lines : list):
+        vertex_will = get_unvisited_vertex(lines)
+
+        last_point = lines[-1][-1] # 마지막 라인의 마지막 지점
+
+        while len(vertex_will) > 0:
+            next_point = min(vertex_will, key=lambda p: distance_calc(p, last_point))
+            vertex_will.remove(next_point)
+            lines.append([next_point])
+
+        return lines
+
+        
 
     def process_result(result):
         '''
@@ -606,13 +654,13 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
         lines = sort_line_order(lines)
 
-        apply_vertex(lines)
+        # apply_vertex(lines)
 
         # visualize_groups(lines)
 
         # add_vertex(lines)
 
-        # lines = add_vertex(lines)
+        lines = add_vertex(lines)
 
         return lines
     
@@ -655,10 +703,10 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     print(result)
     # visualize_groups(result)
     result = process_result(result)
-    # print(len(result))
+    print(result)
     visualize_groups(result)
     print("making animation")
-    # visualize_groups_animation(result)
+    visualize_groups_animation(result)
 
     polygone_data = PolygonData()
     polygone_data.addPolygonData(gcs_lng, gcs_lat, gcs_alt, drone_alt, result)
