@@ -2,11 +2,11 @@
 from flask import Flask, request, render_template, jsonify
 from flask_cors import CORS
 import requests, json
-import mqapi
+from mqapi import *
 
 #Flask 객체 인스턴스 생성
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})  # 모든 엔드포인트에 CORS를 활성화하고 모든 도메인에서의 접근을 허용
 
 ## 상수 정의부
 REST_IP_DEVICE = 'http://203.255.57.136:5001/device'
@@ -19,6 +19,9 @@ WP_TYPE_DROP_AP = 1
 # 선택 디바이스 전역 저장
 selectDevice = 'NONE'
 
+# mq 인스턴스 초기화
+mqsender = MqSender('drone1')
+
 @app.route('/', methods=['GET', 'POST'])
 def main():
   return render_template('main.html')
@@ -26,6 +29,11 @@ def main():
 # service 최초 접속
 @app.route('/service', methods=['GET']) 
 def service_get():
+  gcs_lat = request.args.get('gcs_lat')
+  gcs_lng = request.args.get('gcs_lng')
+  gcs_alt = request.args.get('gcs_alt')
+  flight_alt = request.args.get('flight_alt')
+  distance = request.args.get('distance')
   return render_template('0service_refactoring.html') 
 
 # selectDevice 선택 후 접속
@@ -77,6 +85,8 @@ def takeoff_command():
   print(hash)
   if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
     print('permission accepted')
+    # debug
+    mqsender.takeoff(30, 'drone1')
     return jsonify({"status": "accepted"})
   else:
     print('permission denied')

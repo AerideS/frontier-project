@@ -263,27 +263,27 @@
                         'fill-opacity': 0.1
                     }
                 });
-
-                console.log("executed");
             }
 
             // 음영지역 탐색 결과를 가져오는 함수
-            async function getPolyData() {
-                const response = await fetch(
-                    'http://203.255.57.136:5001/hole?gcs_lat=35.15992&gcs_lng=128.08762&gcs_alt=1.0&flight_alt=1&distance=100',
-                    { method: 'GET' }
-                );
+            async function getPolyData(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance) {
+                const url = `http://203.255.57.136:5001/hole?gcs_lat=${gcs_lat}&gcs_lng=${gcs_lng}&gcs_alt=${gcs_alt}&flight_alt=${flight_alt}&distance=${distance}`;
+                // debug
+                console.log(url);
+                const response = await fetch(url, { method: 'GET' });
                 const jsonData = await response.json();
                 var data = jsonData.result;
+                console.log(data);
                 return data;
             }
 
             // debug
-            // returnPolyArray();
+            //returnPolyArray();
             // 음영지역 폴리곤을 배열 반환
-            async function returnPolyArray() {
+            async function returnPolyArray(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance) {
                 var polyArray = []; 
-                const data = await getPolyData();
+                // debug
+                const data = await getPolyData(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance);
                 for (var i = 0; i < data.length; i++) {
                     var polygon = {
                         'type': 'Feature',
@@ -300,11 +300,10 @@
             }
 
             // 레이어에 추가하는 함수
-            async function addPolytoLayer() {
+            async function addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance) {
                 // 랜덤한 RGB값 생성
                 var randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
-
-                const polygon = await returnPolyArray();
+                const polygon = await returnPolyArray(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance);
                 for (var i = 0; i < polygon.length; i++) {
                     if(i != 0) {
                         map.addLayer({
@@ -596,13 +595,16 @@
                 }
             }
 
-            // Mapbox 이벤트 리스너
-            map.on('load', paintAllRed); 
-            //map.on('load', addPolytoLayer);
-            //map.on('load', onLoad);
-            //map.on('load', renderTable);
-            //map.on('load', updateDropDown);
-            //map.on('load', drawLine);
+            // 맵 로드시 리스너에 추가될 함수
+            //map.on('load', paintAllRed); 
+            // debug 35.14964, 128.09348, 1, 1, 90
+            gcs_lat = 35.14964; gcs_lng = 128.09348; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
+            map.on('load', () => addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance));
+            map.on('load', onLoad);
+            map.on('load', renderTable);
+            map.on('load', paintAllRed);
+            map.on('load', updateDropDown);
+            map.on('load', drawLine);
             
             
             

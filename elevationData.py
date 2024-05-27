@@ -85,7 +85,7 @@ class CrawltoImage:
 
 class FileToAlt:
     # directory = './elevation_file/' -> 이 부분 이렇게 수정했는데 경로 문제 있으면 말해주세요 by 동윤
-    def __init__(self, directory = './elevation_file/') -> None:
+    def __init__(self, directory = '../elevation_file/') -> None:
         self.range = []
         self.directory = directory
         self.getFileList()
