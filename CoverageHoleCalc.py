@@ -574,6 +574,32 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
             # # 각도 -> 진행 
 
+    def apply_vertex(lines):
+        
+        qurd = [False, False, False, False] # 각각 1, 2, 3, 4 분면
+        
+        for single_line in lines:
+            start_point = single_line[0]
+            end_point = single_line[-1]
+
+            if distance_calc(start_point, end_point) < JUMP_GAP:
+                continue
+            
+            for single_point in single_line:
+                if single_point[0] >= gcs_lng:
+                    if single_point[1] >= gcs_lat:
+                        qurd[0] = True
+                    else:
+                        qurd[3] = True
+
+                else:
+                    if single_point[1] >= gcs_lat:
+                        qurd[1] = True
+                    else:
+                        qurd[2] = True
+
+
+
     def process_result(result):
         '''
         근접하는 선들을 연결
@@ -590,6 +616,8 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         # visualize_groups(lines)
 
         lines = sort_line_order(lines)
+
+        apply_vertex(lines)
 
         # visualize_groups(lines)
 
@@ -639,7 +667,7 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     # visualize_groups(result)
     result = process_result(result)
     # print(len(result))
-    # visualize_groups(result)
+    visualize_groups(result)
     print("making animation")
     # visualize_groups_animation(result)
 
@@ -669,6 +697,9 @@ if __name__ == '__main__':
     # case 3----------------------------
     # lat = 35.15992
     # lng = 128.08762
+    # case 4----------------------------
+    lat = 35.14964
+    lng = 128.09348
     # showGraph(lat, lng, alt, 1, 1, distane=distance)
     polygone = getPolygone(lat, lng, alt, 1, 1, distance)
     # visualize_matrix(distance, polygone)
