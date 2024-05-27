@@ -272,8 +272,8 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         # plt.figure(figsize=(14,14))
         plt.xlabel('Latitude (deg)', fontsize=8)
         plt.ylabel('Longitude (deg)', fontsize=8)
-        plt.xlim(gcs_lng - distance*unit*0.00001, gcs_lng + distance*unit*0.00001)
-        plt.ylim(gcs_lat - distance*unit*0.00001, gcs_lat + distance*unit*0.00001)
+        plt.xlim(gcs_lng - distance*unit*0.00001 - 0.00150, gcs_lng + distance*unit*0.00001 + 0.00150)
+        plt.ylim(gcs_lat - distance*unit*0.00001 - 0.00150, gcs_lat + distance*unit*0.00001 + 0.00150)
         plt.xticks(fontsize=12)
         current_values = plt.gca().get_xticks()
         plt.gca().set_xticklabels(['{:.5f}'.format(x) for x in current_values])
@@ -595,16 +595,16 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
 
         will_visit = []
 
-        if visited_vertex[0]:
+        if visited_vertex[0] is False:
             will_visit.append((max_lng, max_lat))
 
-        if visited_vertex[1]:
+        if visited_vertex[1] is False:
             will_visit.append((min_lng, max_lat))
 
-        if visited_vertex[2]:
+        if visited_vertex[2] is False:
             will_visit.append((min_lng, min_lat))
 
-        if visited_vertex[3]:
+        if visited_vertex[3] is False:
             will_visit.append((max_lng, min_lat))
 
         return will_visit    
@@ -704,9 +704,9 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     # visualize_groups(result)
     result = process_result(result)
     print(result)
-    visualize_groups(result)
+    # visualize_groups(result)
     print("making animation")
-    visualize_groups_animation(result)
+    # visualize_groups_animation(result)
 
     polygone_data = PolygonData()
     polygone_data.addPolygonData(gcs_lng, gcs_lat, gcs_alt, drone_alt, result)
