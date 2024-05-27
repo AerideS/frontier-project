@@ -1,4 +1,5 @@
 from pymongo import MongoClient 
+from datetime import datetime
 
 SERVER_ADDR = 'mongodb://203.255.57.122:27018/'
 
@@ -253,7 +254,8 @@ class PolygonData:
             "longitude": longitude,
             "altitude": altitude,
             "drone_altitude": drone_altitude,
-            "polygon_list": polygon_list
+            "polygon_list": polygon_list,
+            "time" : datetime.now().timestamp()
         }
         self.collection.insert_one(new_point)
     
