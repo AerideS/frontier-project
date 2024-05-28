@@ -2,6 +2,9 @@ import os
 import cv2
 from datetime import datetime
 
+CAM_WIDTH = 1920
+CAM_HEIGHT = 1080
+
 class RaspiCAM:
     def __init__(self, save_directory='/home/jetson/Pictures/PiCamera_images'):
         self.save_directory = save_directory
@@ -9,8 +12,8 @@ class RaspiCAM:
         self.camera = self.init_CAM()
 
     def init_CAM(self):
-        width = 1920
-        height = 1080
+        width = CAM_WIDTH
+        height = CAM_HEIGHT
         gst_str = ('nvarguscamerasrc sensor_id=0 wbmode=3 ! ' + 
            'video/x-raw(memory:NVMM), width=1920, height=1080, framerate=30/1 ! ' + 
            'nvvidconv flip-method=0 ! ' + 

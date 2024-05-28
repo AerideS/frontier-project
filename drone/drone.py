@@ -6,10 +6,14 @@ from vehicle import Vehicle
 # from yoloModule import * 
 from vehicle_stub import *
 from datetime import datetime
-from hardware import * # todo : 각 하드웨어에 대해 별도로 import 하지 않고 하나로 합칠수도 있을 듯
+# from drone.hardware_stub import *
 from math import tan
 import tracemalloc
 from yoloModule import * 
+from jetson.lidar import *
+from jetson.motor import *
+from jetson.relay import *
+from jetson.camera import *
 import logging
 
 import os
@@ -28,6 +32,10 @@ PING_PERIOD = 5
 DRONE_ADDRESS = 'udp://:14540'
 
 MINIMAL_RECORD_THREADHOLD = 0.1
+
+DROP_MARGIN = 1 # 중계기 투하시 거리에서 제외
+
+DROP_TICK = 1
 
 logging.basicConfig(filemode=f'./logs/log_{str(datetime.now().timestamp())}', 
                                     format='%(asctime)s %(levelname)s %(message)s %(lineno)d %(pathname)s %(processName)s %(threadName)s',
@@ -63,9 +71,9 @@ class SeekMode:
         self.sub_task_list = [self.yoloModule()]
         
         # self.yolo_module = FindTree()
-        self.cam_module = RaspiCAM__STUB() # 카메라 모듈 스텁
+        self.cam_module = RaspiCAM() # 카메라 모듈 
         self.yolo_module = FindTree() # yolov5 모듈 스텁
-        self.lidar_module = LidarModule__STUB() # 라이다 모듈 스텁
+        self.lidar_module = LidarModule() # 라이다 모듈 스텁
                 
         self.CAM_ANGLE = 63/2 # 라즈베리파이 캠의 화각
         self.CAM_WIDTH_PIXEL = 640
@@ -78,7 +86,7 @@ class SeekMode:
         cnt = 0
         try:
             while cnt < 10:
-                print("SeekMode operating...", cnt)
+                # print("SeekMode operating...", cnt)
                 logging.debug(f'"SeekMode stub operating...", {cnt}')
                 await asyncio.sleep(1)
                 cnt += 1
@@ -90,7 +98,8 @@ class SeekMode:
             await self.base_mode.changeMode('DROP_MODE')
 
         except asyncio.CancelledError as err:
-            print("asyncio.CancelledError", err)
+            logging.CRITICAL("asyncio.CancelledError", str(err))
+            # print("asyncio.CancelledError", err)
     
     async def yoloModule(self):
         '''
@@ -141,9 +150,8 @@ class DropMode:
     '''
     def __init__(self, parent) -> None:
         self.base_mode = parent
-        self.sub_task_list = [self.drop_stub()]
+        self.sub_task_list = [self.dropRepeater()]
             
-        self.dropper = Dropper__STUB()
         self.lidar_module = LidarModule()
         
     def __str__(self) -> str:
@@ -171,11 +179,14 @@ class DropMode:
         '''
         todo : 지금 위치를 전달받아야 할까?
         '''
-        print("DROP REPEATER --------")
-        height = await self.lidar_module.getAltidude()
-        print("GOT HEIGHT  ----------")
-        await self.dropper.drop(height)
-        print("DROP COMPLETE --------")
+        # print("DROP REPEATER --------")
+        logging.debug(f'DROP REPEATER')
+        height = await self.lidar_module.getAltitude()
+        # print("GOT HEIGHT  ----------")
+        logging.debug(f'GOT HEIGHT {height - DROP_MARGIN}')
+        await self.base_mode.dropper.descent_repeater(height - DROP_MARGIN)
+        logging.debug(f'DROP COMPLETE')
+        # print("DROP COMPLETE --------")
         await self.base_mode.changeMode('NORMAL_MODE')
           
 class ReturnMode:
@@ -220,14 +231,14 @@ class ReturnMode:
         '''
         # todo 네트워크 복귀 후 지점 전송
         self.start_point = self.base_mode.route_record[-1]
-        print(216)
+        logging.debug(f'Start Trace Back')
         for single_point in reversed(self.base_mode.route_record):
             lat = round(single_point["latitude_deg"], 5)
             lon = round(single_point["longitude_deg"], 5)
             alt = round(single_point["absolute_altitude_m"], 2)
-            print("get back to...", lat, lon, alt)
+            # print("get back to...", lat, lon, alt)
+            logging.debug(f'get back to... {lat}, {lon}, {alt}')
             await self.base_mode.vehicle.goto(lat, lon, alt)
-            
             
         # loop 문 탈출한 경우에는 집까지 돌아온 것이므로 착륙
         # GCS 위치로 복귀함
@@ -252,8 +263,8 @@ class Drone:
         '''
         self.device_name = device_name
         self.server_addr = server_addr
-        
-        print(207, device_name, server_addr)
+        logging.debug(f'device_name : {device_name}, server_addr : {server_addr}')
+        # print(207, device_name, server_addr)
         
         # rabbitmq message receiver
         self.receiver = mqapi.MqReceiverAsync(device_name, server_addr)
@@ -264,6 +275,9 @@ class Drone:
         # mavsdk Drone actuator
         self.vehicle = Vehicle(DRONE_ADDRESS)
         # self.vehicle = Vehicle_Stub(DRONE_ADDRESS)
+
+        self.dropper = ReelModule() # 릴은 항상 동작하도록
+        self.cutter = RelayModule()
         
         # ping to server - network checker
         self.networkChecker = networkChecker(server_addr, PING_PERIOD)     
@@ -289,12 +303,6 @@ class Drone:
         self.cur_mode = NormalMode(self)
         
         self.route_record_set = True
-
-
-
-
-        
-
         
     async def normal_stub(self):
         cnt = 0
@@ -309,12 +317,9 @@ class Drone:
         except asyncio.CancelledError as err:
             print("asyncio.CancelledError", err)
             
-        
     async def initSystem(self):
         await self.vehicle.initConnect()
-        print(239, '----------------------------------------------------------------')
         await self.receiver.initConnection()
-        print(241)
             
     async def userInteraction(self): 
         # todo : 모드 변경시 user interaction 2번 들어가는 문제가 있었는데 해결 필요
@@ -358,55 +363,75 @@ class Drone:
         receiver에서 메세지를 받아 해석 후 mavsdk 명령 수행
         '''
         print('waiting for message')
+        logging.debug("waiting for message")
         async for single_message in self.receiver.getMessage():
             
             if "type" not in single_message:
+                logging.CRITICAL(f'not defined message{str(single_message)}')
                 print("not defined message")
                 continue
             await self.vehicle.waitForHold(single_message["type"])
             
             async for mode in self.getCurrentMode():
                 print(357, mode)
+                logging.debug(f"wait for normal mode. cur:{mode}")
                 if mode == NormalMode:
                     break
                 await asyncio.sleep(0.5)
-            
+            logging.debug(f"GOT MESSAGE : {single_message["type"]}")
             print("GOT MESSAGE :", single_message["type"])
             if single_message["type"] == 'arm':
                 await self.vehicle.arm()
             elif single_message["type"] == 'takeoff':
                 if 'altitude' in single_message:
+                    logging.debug(f"takeoff, altitude : {single_message['altitude']}")
                     await self.vehicle.takeoff(single_message['altitude'])
             elif single_message["type"] == 'goto':
                 if ('latitude' in single_message) and ('longitude' in single_message):
+                    logging.debug(f"goto, lat : {single_message['latitude']}, lng : {single_message['longitude']}")
                     await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
             elif single_message["type"] == 'setElev':
                 if 'altitude' in single_message:
+                    logging.debug(f"setElev, {single_message['altitude']}")
                     await self.vehicle.setElev(single_message['altitude'])
             elif single_message["type"] == 'wait':
                 if 'time' in single_message:
+                    logging.debug(f"wait, {single_message['time']}")
                     await self.vehicle.wait(single_message['time'])
             elif single_message["type"] == 'land':
+                logging.debug(f"land,")
                 await self.vehicle.land()
             elif single_message["type"] == 'disarm':
                 # disarm은 아마 착륙하면 자동으로 될 것
+                logging.debug(f"disarm,")
                 pass
             elif single_message["type"] == 'startDrop':
+                logging.debug("startDrop, change to SEEK MODE")
                 print("startDrop, change to SEEK MODE")
                 if ('latitude' in single_message) and ('longitude' in single_message):
+                    logging.debug(f"goto, {single_message['latitude']}, {single_message['longitude']}")
                     await self.vehicle.goto(single_message['latitude'], single_message['longitude'])
                 await self.changeMode('SEEK_MODE')
                 print("changed")
                 break
+            elif single_message["type"] == 'cutString':
+                self.cutter.cut_string()
+            elif single_message["type"] == 'ascent_repeater':
+                self.dropper.ascent_repeater(DROP_TICK)
+            elif single_message["type"] == 'descent_repeater':
+                self.dropper.descent_repeater(DROP_TICK)
+
             else:
+                logging.critical(f"undefined message, {str(single_message)}")
                 print("undefined message")
             if self.task_halt:
+                logging.critical("break message")
                 print("break message")
                 break
             
             await self.vehicle.waitForHold(single_message["type"])
             
-            print(320)
+            # print(320)
      
     async def updateStatus(self):
         '''
@@ -414,6 +439,7 @@ class Drone:
         '''
         prev_sent = datetime.now().timestamp()
         async for velocity, battery, position in self.vehicle.getLocation():
+            logging.debug("Status sent")
             print("Status sent", datetime.now().timestamp() - prev_sent)
             prev_sent = datetime.now().timestamp()
             if self.task_halt:
@@ -456,6 +482,7 @@ class Drone:
                 "absolute_altitude_m" : position.absolute_altitude_m,
                 "relative_altitude_m" : position.relative_altitude_m
             }
+            logging.debug(f"cur record, {str(single_data)}")
             if len(self.route_record) == 0:
                 self.route_record.append(single_data)
             # todo : 이전 기록과 비교하여 그렇게 차이나지 않는 경우에는 추가로 기록하지 않기
@@ -464,10 +491,13 @@ class Drone:
                 self.route_record[-1]["latitude_deg"], self.route_record[-1]["longitude_deg"], \
                     self.route_record[-1]["absolute_altitude_m"])
             print('distance ',distance)
+            logging.debug(f'distance {distance}')
             if distance > MINIMAL_RECORD_THREADHOLD:
                 self.route_record.append(single_data)
+                logging.debug('route recorded')
                 print('route recorded :', self.route_record)
             else:
+                logging.debug('too close, pass recording')
                 print("too close, pass recording")
     
     async def sendStatus(self, velocity, battery, position):
@@ -520,9 +550,7 @@ class Drone:
                     break
                 
                 if type(self.cur_mode) == ReturnMode:
-                    print(391)
                     if response == True:
-                        print(393)
                         print("return mode, network retrived, change to ", self.cur_mode.prev_mode, \
                             type(self.cur_mode.prev_mode))
                         print(512)

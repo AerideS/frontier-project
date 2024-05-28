@@ -3,7 +3,7 @@ import threading
 import aio_pika
 import asyncio
 from mongodb_api import DroneData
-
+import logging
 
 SERVER_IP = 'localhost'
 '''
@@ -52,6 +52,7 @@ class MqReceiverAsync:
                 print(err, "error while checking connection to server")
                 await asyncio.sleep(RETRY_PERIOD)
             finally:
+                logging.debug("rabbitmq init complete")
                 await self.connection.close()
         
     async def checkConnection(self):
@@ -92,6 +93,7 @@ class MqReceiverAsync:
                     #     break
                     async with message.process():
                         # 메시지 처리
+                        logging.debug(f"Message got : {message.body.decode()}")
                         yield json.loads(message.body.decode())
         except Exception as excpt:
             print(excpt)
@@ -125,6 +127,8 @@ class MqSenderAsync:
                 channel = await connection.channel()
 
                 queue = await channel.declare_queue(name=target, durable=True)
+
+                logging.debug(f'message : {str(message)}')
 
                 message_body = json.dumps(message)
 
