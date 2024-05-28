@@ -20,7 +20,7 @@ WP_TYPE_DROP_AP = 1
 selectDevice = 'NONE'
 
 # mq 인스턴스 초기화
-mqsender = MqSender('drone1')
+mqsender = MqSender('203.255.57.136')
 
 @app.route('/', methods=['GET', 'POST'])
 def main():
@@ -65,6 +65,7 @@ def delete_waypoint():
   print(response)
   return render_template('service.html', selectDevice=selectDevice)
   
+URL_WP = 'http://203.255.57.136:5001/waypoint'
 @app.route('/submit', methods=['POST']) 
 def submit_command():
   data = request.json
@@ -72,6 +73,11 @@ def submit_command():
   print(hash)
   if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
     print('permission accepted')
+    # 여기 코드를 넣을거야.
+    response = requests.get(URL_WP)
+    json_data = response.json()
+    print(json_data)
+
     return jsonify({"status": "accepted"})
   else:
     print('permission denied')
@@ -99,6 +105,8 @@ def land_command():
   print(hash)
   if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
     print('permission accepted')
+    # debug
+    mqsender.land('drone1')
     return jsonify({"status": "accepted"})
   else:
     print('permission denied')
