@@ -132,7 +132,6 @@ class SeekMode:
         x_dist = conversion_factor * pixel_width_dis
         y_dist = conversion_factor * pixel_height_dis
         
-        
         return x_dist, y_dist
 
 class DropMode:
@@ -154,9 +153,11 @@ class DropMode:
         cnt = 0
         try:
             while cnt < 10:
-                logging.debug(f'DropMode stub operating..., {cnt}')
+                logging.debug(f'DropMode operating..., {cnt}')
+                print("DropMode operating...", cnt) 
                 await asyncio.sleep(1)
                 cnt += 1
+                print("DropMode, sub")
                 # print(self.base_mode.created_sub_task_list)
                 print("DropMode main")
                 # print(self.base_mode.created_task_list)
@@ -170,7 +171,7 @@ class DropMode:
         '''
         todo : 지금 위치를 전달받아야 할까?
         '''
-        print("DROP REPEATER --------") # logger
+        print("DROP REPEATER --------")
         height = await self.lidar_module.getAltidude()
         print("GOT HEIGHT  ----------")
         await self.dropper.drop(height)

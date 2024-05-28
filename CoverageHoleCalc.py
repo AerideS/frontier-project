@@ -631,7 +631,9 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         while len(vertex_will) > 0:
             next_point = min(vertex_will, key=lambda p: distance_calc(p, last_point))
             vertex_will.remove(next_point)
-            lines.append([next_point])
+            lines[-1].append(next_point)
+
+        lines[-1].append(lines[0][0])
 
         return lines
 
