@@ -223,8 +223,8 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
     
     def visualize_groups(groups):
         plt.figure(figsize=(14,14))
-        plt.xlim(gcs_lng - distance*unit*0.00001, gcs_lng + distance*unit*0.00001)
-        plt.ylim(gcs_lat - distance*unit*0.00001, gcs_lat + distance*unit*0.00001)
+        plt.xlim(gcs_lng - distance*unit*0.00001 - 0.0001, gcs_lng + distance*unit*0.00001 + 0.0001)
+        plt.ylim(gcs_lat - distance*unit*0.00001 - 0.0001, gcs_lat + distance*unit*0.00001 + 0.0001)
         plt.scatter(gcs_lng, gcs_lat, c='r')
 
         lat_points = None

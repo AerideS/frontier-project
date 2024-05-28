@@ -10,6 +10,7 @@ from hardware import * # todo : 각 하드웨어에 대해 별도로 import 하�
 from math import tan
 import tracemalloc
 from yoloModule import * 
+import logging
 
 import os
 import sys
@@ -28,6 +29,10 @@ DRONE_ADDRESS = 'udp://:14540'
 
 MINIMAL_RECORD_THREADHOLD = 0.1
 
+logging.basicConfig(filemode=f'./logs/log_{str(datetime.now().timestamp())}', 
+                                    format='%(asctime)s %(levelname)s %(message)s %(lineno)d %(pathname)s %(processName)s %(threadName)s',
+                                    level=logging.DEBUG, 
+                                    datefmt='%m/%d/%Y %I:%M:%S %p',)
     
 class NormalMode:
     '''
@@ -74,6 +79,7 @@ class SeekMode:
         try:
             while cnt < 10:
                 print("SeekMode operating...", cnt)
+                logging.debug(f'"SeekMode stub operating...", {cnt}')
                 await asyncio.sleep(1)
                 cnt += 1
                 # print("SeekMode, sub")
@@ -94,23 +100,20 @@ class SeekMode:
         4. 모드 변경한다
         '''
         while True: # 카운트 세다가 없으면 넘어가기?
-            print(366)
+            logging.debug(f'yolo Module started')
             this_pic = self.cam_module.getPicture() # 사진 받아옴
-            print(368)
+            logging.debug(f'got picture')
             process_result = await self.yolo_module.process_image(this_pic)
-            print(370)
+            logging.debug(f'got coordinate {str(process_result)}')
             if process_result is None:
                 pass # 결과가 없을 경우 이동하고 다시 비행하는 과정 포함
-                print(373)
             else:
                 terrain_distance = await self.lidar_module.getAltidude()
                 x_pix, y_pix = process_result
                 x_dist, y_dist = self.convertPixelToMeters(x_pix, y_pix, terrain_distance)
-                print(376)
+                logging.debug(f'move to {x_dist}, {y_dist}')
                 await self.base_mode.vehicle.move_meters(x_dist, y_dist)
-                print(378)
                 await self.base_mode.changeMode('DROP_MODE')
-                print(380)
                 break
             
             await asyncio.sleep(1)
@@ -128,6 +131,7 @@ class SeekMode:
         
         x_dist = conversion_factor * pixel_width_dis
         y_dist = conversion_factor * pixel_height_dis
+        
         
         return x_dist, y_dist
 
@@ -150,10 +154,9 @@ class DropMode:
         cnt = 0
         try:
             while cnt < 10:
-                print("DropMode operating...", cnt)
+                logging.debug(f'DropMode stub operating..., {cnt}')
                 await asyncio.sleep(1)
                 cnt += 1
-                print("DropMode, sub")
                 # print(self.base_mode.created_sub_task_list)
                 print("DropMode main")
                 # print(self.base_mode.created_task_list)
@@ -167,7 +170,7 @@ class DropMode:
         '''
         todo : 지금 위치를 전달받아야 할까?
         '''
-        print("DROP REPEATER --------")
+        print("DROP REPEATER --------") # logger
         height = await self.lidar_module.getAltidude()
         print("GOT HEIGHT  ----------")
         await self.dropper.drop(height)
@@ -285,7 +288,12 @@ class Drone:
         self.cur_mode = NormalMode(self)
         
         self.route_record_set = True
+
+
+
+
         
+
         
     async def normal_stub(self):
         cnt = 0
