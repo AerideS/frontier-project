@@ -76,7 +76,16 @@ def submit_command():
     # 여기 코드를 넣을거야.
     response = requests.get(URL_WP)
     json_data = response.json()
-    print(json_data)
+    result_data = json_data['result']
+    for data in result_data:
+      if data['type'] == WP_TYPE_MOVE:
+        latitude = data['latitude']
+        longitude = data['longitude']
+        mqsender.goto(latitude, longitude, 'drone1')
+      elif data['type'] == WP_TYPE_DROP_AP:
+        mqsender.goto(latitude, longitude, 'drone1')
+        mqsender.cutString('drone')
+
 
     return jsonify({"status": "accepted"})
   else:

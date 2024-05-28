@@ -8,47 +8,119 @@
         <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
         <style>
-                body { margin: 0; padding: 0; }
-                #map {
-                    position: absolute;
-                    top: 0;
-                    bottom: 0;
-                    left: 0;
-                    width: 70%;
-                    height: 100%;
-                }
-                .return {
-                    position: absolute;
-                    top: 0;
-                }
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f5f5f5;
+            }
+            #map {
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                left: 0;
+                width: 70%;
+                height: 100%;
+            }
+            .return {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                padding: 10px 20px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            .return:hover {
+                background-color: #0056b3;
+            }
 
-                .dropdown {
-                    position: relative;
-                    top: 0px;
-                    left: 1330px;
-                }
-
-                #waypointTable {
-                    position: relative;
-                    left: 1330px;
-                    border: 1px solid #ddd;
-                }
-
-                .waypointTable th, .waypointTable td {
-                    border: 1px solid #ddd;
-                    padding: 8px;
-                    text-align: left;
-                }
-
-                .waypointTable tr:nth-child(even) {
-                    background-color: #f2f2f2;
-                }
-
-                #controlPanel {
-                    position: relative;
-                    left: 1330px;
-                    top: 10px;
-                }
+            .dropdown form {
+                position: absolute;
+                top: 35px;
+                right: 100px;
+            }
+            .dropdown h3 {
+                position: absolute;
+                top: 20px;
+                right: 300px;
+            }
+    
+            #waypointTable {
+                position: absolute;
+                top: 80px;
+                right: 20px;
+                border-collapse: collapse;
+                width: 25%;
+                background-color: white;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                border-radius: 5px;
+            }
+            .waypointTable th, .waypointTable td {
+                border: 1px solid #ddd;
+                padding: 12px;
+                text-align: left;
+            }
+            .waypointTable th {
+                background-color: #007bff;
+                color: white;
+            }
+            .waypointTable tr:nth-child(even) {
+                background-color: #f2f2f2;
+            }
+            .waypointTable tr:hover {
+                background-color: #ddd;
+            }
+            #PanelWrapper {
+                position: absolute;
+                top: 800px;
+                right: 20px;
+                width: 25%;
+                background-color: white;
+                border: 1px solid #ddd;
+                border-radius: 5px;
+                padding: 20px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                display: flex;
+                flex-direction: row;
+                gap: 10px;
+                justify-content: center;
+            }
+            #PanelWrapper button {
+                padding: 10px 20px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            #selectedDevice {
+                position: absolute;
+                top: 20px;
+                right: 220px;
+                background-color: white;
+                padding: 10px 15px;
+                border-radius: 5px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                z-index: 1000;
+            }
+            .button {
+                display: block;
+                margin: 10px 0;
+                padding: 10px 20px;
+                background-color: #007bff;
+                color: white;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+                text-align: center;
+                text-decoration: none;
+            }
+            .button:hover {
+                background-color: #0056b3;
+            }
         </style>
     </head>
     <body>
@@ -57,16 +129,19 @@
         1. 최초 접속 시, 아무것도 띄우지 않음
         2. 디바이스 선택 시 POST로 select 데이터 전송
         -->
-        <form action="http://203.255.57.136:5000/service" method="POST">
-            <select id="dropdown" name="dropdown" class="dropdown">
 
-            </select>
-            <button type="submit" class="dropdown">디바이스 선택</button>
-        </form>
+        <div class="dropdown">
+            <form action="http://203.255.57.136:5000/service" method="POST">
+                <select id="dropdown" name="dropdown" class="dropdown">
+    
+                </select>
+                <button type="submit" class="dropdown">디바이스 선택</button>
+            </form>
 
-        <h3 class="dropdown">
-            Selected Device: {{ selectDevice }}
-        </h3>
+            <h3 class="dropdown">
+                Selected Device: {{ selectDevice }}
+            </h3>
+        </div>
 
         <!-- Mapbox API에서 지도를 불러옴 -->
         <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
@@ -93,21 +168,12 @@
         </table>
 
         <!-- 드론에 드론정보시스템의 waypoint를 전송 -->
-        <div id="controlPanel">
-            <button type="button" onClick="validateAPIKey(CM_TYPE_SUBMIT)">명령전송</button>
-        </div>
-
-        <!-- 드론 이륙, 착륙, 열선 작동, -->
-        <div id="controlPanel">
-            <button type="button" onClick="validateAPIKey(CM_TYPE_TAKEOFF)">이륙</button>
-        </div>
-
-        <div id="controlPanel">
-            <button type="button" onClick="validateAPIKey(CM_TYPE_LAND)">착륙</button>
-        </div>
-
-        <div id="controlPanel">
-            <button type="button" onClick="validateAPIKey(CM_TYPE_HEATER)">열선 작동</button>
+        <div id="PanelWrapper">
+                <button type="button" onClick="validateAPIKey(CM_TYPE_SUBMIT)">명령전송</button>
+            <!-- 드론 이륙, 착륙, 열선 작동, -->
+                <button type="button" onClick="validateAPIKey(CM_TYPE_TAKEOFF)">이륙</button>
+                <button type="button" onClick="validateAPIKey(CM_TYPE_LAND)">착륙</button>
+                <button type="button" onClick="validateAPIKey(CM_TYPE_HEATER)">열선 작동</button>
         </div>
 
         <script>
@@ -599,9 +665,9 @@
             //map.on('load', paintAllRed); 
             // debug 35.14964, 128.09348, 1, 1, 90
             gcs_lat = 35.14964; gcs_lng = 128.09348; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
-            map.on('load', () => addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance));
+            //map.on('load', () => addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance));
             //map.on('load', onLoad);
-            //map.on('load', renderTable);
+            map.on('load', renderTable);
             //map.on('load', paintAllRed);
             //map.on('load', updateDropDown);
             //map.on('load', drawLine);

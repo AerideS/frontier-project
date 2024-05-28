@@ -7,25 +7,75 @@
 <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
 <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
 <style>
-body { margin: 0; padding: 0; }
-#map {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: 50%;
-}
-.input {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(50% + 50px);
-    width: calc(50% - 50px);
-}
-.input .welcome {
-    font-size: large;
-}
+    body {
+        margin: 0;
+        padding: 0;
+        font-family: 'Roboto', sans-serif;
+    }
+    #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        width: 50%;
+    }
+    .input {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: calc(50% + 50px);
+        width: calc(50% - 50px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 10px;
+        padding: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        background-color: white;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+    }
+    .input .welcome {
+        font-size: large;
+        font-weight: 700;
+    }
+    .button-container {
+        display: flex;
+        justify-content: center;
+    }
+    .input input[type="submit"] {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-top: 10px;
+        font-size: 16px;
+        font-weight: 700;
+    }
+    .input p {
+        margin: 10px 0 5px 0;
+        font-weight: 400;
+    }
+    .input input[type="float"] {
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 14px;
+    }
 
+    .image-container {
+            position: absolute;
+            top: 350px;
+            right: 200px; /* 조정된 부분: 이미지 컨테이너를 오른쪽으로 이동 */
+            z-index: 1000; /* 추가된 부분: 이미지 컨테이너를 다른 요소들보다 위로 배치 */
+        }
+    .image-container img {
+        max-width: 200px;
+        height: auto;
+        border-radius: 5px;
+    }
 </style>
 </head>
 <body>
@@ -33,6 +83,10 @@ body { margin: 0; padding: 0; }
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
 <div id="map"></div>
+
+<div class="image-container">
+    <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo">
+</div>
 
 <div class = "input">
     <form action = "http://203.255.57.136:5000/service" method = "GET">
