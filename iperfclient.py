@@ -1,5 +1,6 @@
 import subprocess
 import threading
+from datetime import datetime
 
 def run_iperf_test(server_ip, log_file):
     iperf_command = ["iperf3", "-c", server_ip, "-t", "0", "-i", "1"]
@@ -24,7 +25,8 @@ def main():
 
     try:
         for server_ip in server_ips:
-            log_file = f"iperf_log_{server_ip}.txt"  # 각 서버 IP 주소별로 고유한 로그 파일 생성
+            timestamp = datetime.now().strftime("%Y%m%d%H%M%S")  # 현재 시간을 타임스탬프 형식으로 가져오기
+            log_file = f"iperf_log_{server_ip}_{timestamp}.txt"  # 각 서버 IP 주소별로 고유한 로그 파일 생성
             print(f"{server_ip}에 대한 네트워크 성능 측정을 시작합니다... 로그 파일: {log_file}")
             thread = threading.Thread(target=run_iperf_test, args=(server_ip, log_file))
             thread.start()
