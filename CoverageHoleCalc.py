@@ -155,7 +155,8 @@ def showGraph(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distane):
         # plt.show()
         plt.cla()
 
-def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
+def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
+                unit : int, drone_alt : float, distance : int):
     '''
     특정 GCS 위치에서의 음영지역에 대한 폴리곤 return
     gcs_lat : GCS의 위도
@@ -165,6 +166,13 @@ def getPolygone(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distance):
         지표면 대비 해당 고도보다 통신가능최소고도가 높은 경우 해당 지역을 음영지역이라 
         간주하고 해당 지역에 폴리곤을 생성함
     '''
+
+    gcs_lat = round(gcs_lat, 5)
+    gcs_lng = round(gcs_lng, 5)
+    gcs_alt = round(gcs_alt, 1)
+    unit = int(unit)
+    drone_alt = round(drone_alt, 1)
+    distance= int(distance)
 
     los, losDif = calculationLos(gcs_latitude=gcs_lat, gcs_longitude=gcs_lng, 
                                          gcs_altitude=gcs_alt, unit=unit, flight_alt=drone_alt, distance=distance)

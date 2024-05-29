@@ -128,7 +128,7 @@ class MqSenderAsync:
 
                 queue = await channel.declare_queue(name=target, durable=True)
 
-                logging.debug(f'message : {str(message)}')
+                logging.debug(f'message : {str(message)}, to {target}')
 
                 message_body = json.dumps(message)
 

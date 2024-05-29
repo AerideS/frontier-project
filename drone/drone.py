@@ -181,12 +181,14 @@ class DropMode:
         '''
         # print("DROP REPEATER --------")
         logging.debug(f'DROP REPEATER')
-        height = await self.lidar_module.getAltitude()
+        height = self.lidar_module.getAltitude()
         # print("GOT HEIGHT  ----------")
         logging.debug(f'GOT HEIGHT {height - DROP_MARGIN}')
-        await self.base_mode.dropper.descent_repeater(height - DROP_MARGIN)
+        self.base_mode.dropper.descent_repeater(height - DROP_MARGIN)
         logging.debug(f'DROP COMPLETE')
+        self.base_mode.cutter.cut_string()
         # print("DROP COMPLETE --------")
+        logging.debug(f'CUT COMPLETE')
         await self.base_mode.changeMode('NORMAL_MODE')
           
 class ReturnMode:
@@ -546,14 +548,16 @@ class Drone:
             async for response in self.networkChecker.ping():
                 # print(response)
                 print(386, self.cur_mode, response)
+                logging.debug(f"network check, {self.cur_mode}, {response}")
                 if self.task_halt:
                     break
                 
                 if type(self.cur_mode) == ReturnMode:
                     if response == True:
+                        logging.debug(f"return mode, network retrived, change to {self.cur_mode.prev_mode}, \
+                            {type(self.cur_mode.prev_mode)}")
                         print("return mode, network retrived, change to ", self.cur_mode.prev_mode, \
                             type(self.cur_mode.prev_mode))
-                        print(512)
                         async for _, _, position in self.vehicle.getLocation():
                             end_point = position
                             start_point = self.cur_mode.start_point             
@@ -594,31 +598,41 @@ class Drone:
         #     self.task_halt = True
         #     single_task.cancel()
         #     print(440, single_task)
+        logging.debug("change mode")
             
         if new_mode == 'NORMAL_MODE':
+            logging.debug("NORMAL_MODE")
             self.cur_mode = NormalMode(self)
         elif new_mode == 'DROP_MODE':
+            logging.debug("DROP_MODE")
             self.cur_mode = DropMode(self)
         elif new_mode == 'SEEK_MODE':
+            logging.debug("SEEK_MODE")
             self.cur_mode = SeekMode(self)
         elif new_mode == 'RETURN_MODE':
+            logging.debug("RETURN_MODE")
             self.cur_mode = ReturnMode(self, self.cur_mode)
         else:
+            logging.error("Mode error")
             print("Mode error", new_mode)
             self.cur_mode = NormalMode(self)
             
-        print(377, self.cur_mode)
-        print(526)
-        print(self.created_task_list)
-        print(527)
-        print(self.created_sub_task_list)
+        # print(377, self.cur_mode)
+        # print(526)
+        # print(self.created_task_list)
+        # print(527)
+        # print(self.created_sub_task_list)
+
+        logging.debug(str(self.cur_mode))
+        logging.debug(str(self.created_task_list))
+        logging.debug(str(self.created_sub_task_list))
+
         
         # await self.start()       
                
     async def stop_task(self):
         '''
-        mode 변환 등을 위해 수행중인 task를 종료함
-        사용되지 않음
+        수행중인 task를 종료함
         '''
         # print(129)
         for single_task in self.created_task_list:
@@ -631,6 +645,7 @@ class Drone:
     #     return created_task_list
 
     async def clear_sub_task(self):
+        logging.debug("clear_sub_task")
         # for single_task in self.created_task_list:
         #     print(single_task)
         #     single_task.cancel()
@@ -642,20 +657,7 @@ class Drone:
             single_task.cancel()
             
         self.created_sub_task_list.clear()
-        
-    # async def make_task(self, task_list):
-    #     created_task_list = []
-    #     for single_task in task_list:
-    #         print(148, single_task)
-    #         try:
-    #             print(type(created_task_list))
-    #             single_created_task = asyncio.create_task(single_task)
-    #             print(type(single_created_task))
-    #             created_task_list.append(single_created_task)
-    #             print(type(created_task_list))
-                
-    #         except ValueError as val_e:
-    #             print(val_e)
+
 
     async def task_manager(self):
         cur_mode = NormalMode
@@ -687,27 +689,30 @@ class Drone:
         
         '''
         # 초기 시스템 설정
+        logging.debug("system started")
         self.created_task_list = [asyncio.create_task(task) for task in self.task_list]
         cnt = 0
         while True:
             await self.clear_sub_task()
-            print(518)
             try:
                 
                 print(587, self.cur_mode)
+                logging.debug(str(self.cur_mode))
                 print(590, self.created_sub_task_list)
+                logging.debug(str(self.created_sub_task_list))
                 print(591, self.created_task_list)
+                logging.debug(str(self.created_task_list))
                 print(590)
                 await asyncio.gather(*self.created_task_list, *self.created_sub_task_list)
-                print(592)
                             
-            except KeyboardInterrupt:
-                print(594)
+            except KeyboardInterrupt as err:
+                logging.debug(str(err))
                 await self.stop_task()
             # except asyncio.CancelledError:
                 
                 
             if cnt > 3:
+                logging.debug(f"cnt {cnt}")
                 return 
             cnt += 1
       
