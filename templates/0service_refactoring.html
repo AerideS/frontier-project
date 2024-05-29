@@ -283,8 +283,8 @@
             const map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/dark-v11',
-                center: [128.0996, 35.1531],
-                zoom: 14,
+                center: [128.07988, 35.15833],
+                zoom: 17,
                 pitch: 40
             });
 
@@ -368,6 +368,8 @@
             // 레이어에 추가하는 함수
             async function addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance) {
                 // 랜덤한 RGB값 생성
+                // debug
+                alert('실행됨');
                 var randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
                 const polygon = await returnPolyArray(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance);
                 for (var i = 0; i < polygon.length; i++) {
@@ -523,11 +525,15 @@
                             .addTo(map);
                     }
                     else if (result[i].type == WP_TYPE_DROP_AP) {
+                        gcs_lat = result[i].longitude; gcs_lng = result[i].latitude; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
+                        //gcs_lat = 35.15833; gcs_lng = 128.07988; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
                         newPoint = [result[i].latitude, result[i].longitude];
                         coordinates.push(newPoint);
                         new mapboxgl.Marker(div_red)
                             .setLngLat(newPoint)
                             .addTo(map);
+                        
+                        addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance)
                     }
                 }
                 return coordinates;
@@ -664,13 +670,13 @@
             // 맵 로드시 리스너에 추가될 함수
             //map.on('load', paintAllRed); 
             // debug 35.14964, 128.09348, 1, 1, 90
-            gcs_lat = 35.14964; gcs_lng = 128.09348; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
+            //gcs_lat = 35.15833; gcs_lng = 128.07988; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
             //map.on('load', () => addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance));
-            //map.on('load', onLoad);
+            map.on('load', onLoad);
             map.on('load', renderTable);
-            //map.on('load', paintAllRed);
-            //map.on('load', updateDropDown);
-            //map.on('load', drawLine);
+            map.on('load', paintAllRed);
+            map.on('load', updateDropDown);
+            map.on('load', drawLine);
             
             
             

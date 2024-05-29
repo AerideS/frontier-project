@@ -229,6 +229,62 @@ class TerrainData:
             return drone_info.get('altitude')  # 시야 고도를 의미하는 altitude를 반환
         return None
 
+class GCSData:
+    
+    def __init__(self) -> None:
+        client = MongoClient("mongodb://localhost:27017/")
+        self.db = client['GCSdata']
+        self.collection = self.db['GCS_data']
+        
+    def add_device_data(self, GCS_id, longitude, latitude, altitude, drone_altitude, distance):
+        new_point={
+            "GCS_id": GCS_id,
+            "longitude": longitude,
+            "latitude": latitude,
+            "altitude": altitude,
+            "drone_altitude": drone_altitude,
+            "distance": distance,
+            "time" : datetime.now().timestamp()
+        }
+        self.collection.insert_one(new_point)
+
+    def getAcesspointList(self):
+        '''
+        GCS들의 ID 목록 가져옴
+        '''
+        collection_name = 'GCS_data'
+        collection = self.db[collection_name]
+        cursor = collection.find()
+        
+        return [single_name['GCS_id'] for single_name in cursor]
+        
+    def get_GCS_data(self, drone_id):
+        '''
+        GCS ID에 해당하는 디바이스의 정보를 가져옴
+        '''
+        collection_name = 'GCS_data'
+        collection = self.db[collection_name]
+        data = collection.find_one({'GCS_id': drone_id}, {"_id": 0})
+        return data
+
+    def updateGCSpoint(self, GCS_id, longitude, latitude, altitude, drone_atltitude, distance):
+        '''
+        기존에 존재하는 waypoint의 타입, 위도, 경도 정보 갱신
+        waypoint_id에 해당하는 waypoint를 갱신하며
+        존재하지 않는 waypoint_id일 경우에는 아무런 동작도 하지 않음
+        '''
+        self.collection.update_one({"GCS_id": GCS_id}, {"$set": {"longitude": longitude, "latitude": latitude, "altitude": altitude, "drone_altitude": drone_atltitude, "distance": distance}})
+    
+    def delGCSpoint(self, GCS_id):
+        '''
+        waypoint_id에 해당하는 waypoint 삭제,
+        존재하지 않는 waypoint_id일 경우에는 아무런 동작도 하지 않음
+        삭제 후 waypoint_num의 개수를 1 감소시킴
+        '''
+        self.collection.delete_one({"GCS_id": GCS_id})
+
+        return True
+    
 class PolygonData:
     '''
     특정 GCS의 위치에 대해 음영지역을 계산한 결과를 저장
@@ -275,7 +331,45 @@ class PolygonData:
     
     def clearPolygon(self):
         self.collection.delete_many({})
+
+class OnlyPolygonData:
+    '''
+    특정 GCS의 위치에 대해 음영지역을 계산한 결과를 저장
+    parameter : GCS 경도, GCS 위도, GCS 고도, 드론 비행 고도
+    '''
+    def __init__(self) -> None:
+        client = MongoClient(SERVER_ADDR)
+        self.db = client['Only_polygon_data']  # Ensure the database name is all lowercase
+        self.collection = self.db['Only_polygon_data']
+    
+    def addPolygonData(self, polygon_list):
+        max_id = self.collection.find_one(sort=[("GCS_id", -1)])  # 현재 가장 큰 GCS_id를 찾음
+        new_GCS_id = 1 if not max_id else max_id["GCS_id"] + 1
+        new_point = {
+            "GCS_id": new_GCS_id,
+            "polygon_list": polygon_list,
+            "time": datetime.now().timestamp()
+        }
+        self.collection.insert_one(new_point)
         
+    def getPolygonData(self, GCS_id):
+        # 여기서 위도, 경도, 고도는 GCS의 위도, 경도, 고도이다.
+        data = self.collection.find_one({'GCS_id': GCS_id}, {"_id": 0})
+        return data
+    
+    def delPolygonData(self, GCS_id):
+        self.collection.delete_one({"GCS_id": GCS_id})        
+        return True
+    
+    def getAllPolygonData(self):
+        # 컬렉션에서 모든 폴리곤 데이터를 검색하여 리스트로 반환
+        cursor = self.collection.find({}, {"_id": 0}) 
+        polygon_data_list = list(cursor) 
+        return polygon_data_list
+    
+    def clearPolygon(self):
+        self.collection.delete_many({})
+
 
 if __name__ == '__main__':
     # drone_data = DroneData()
@@ -290,6 +384,7 @@ if __name__ == '__main__':
     dronedata=DroneData()
     terraindata=TerrainData()
     polygondata=PolygonData()
+    gcsdata=GCSData()
     # waypoint.clearWaypoint()
     # waypoint.addWaypoint("move", 111.111, 222.222)
     # waypoint.addWaypoint("move", 222.222, 222.222)
@@ -308,22 +403,27 @@ if __name__ == '__main__':
     # waypoint.addWaypoint(111.111, 222.222)
     # waypoint.addWaypoint(111.111, 222.222)
     # waypoint.addWaypoint(222.222, 333.333)
-    
     # dronedata.add_device_data(2, 111, 222, 333)
     # dronedata.update_device_data(1, 222, 333, 444)
     # print('getDeviceList: ', dronedata.getDeviceList())
     # print('getDeviceList: ', dronedata.get_device_data(2))
-    # polygondata.addPolygonData(123.456,78.910,100,50,[[[126.9779, 37.5664], [126.9781, 37.5666], [126.9780, 37.5665]],[[126.9790, 37.5670], [126.9792, 37.5672], [126.9791, 37.5671]]])
-    # data = polygondata._checkExist(GCS_id=1)
-    # print("추가된 데이터:", data)
-    # polygondata.delPolygonData(2)
-    polygondata.clearPolygon()
+    # polygondata.addPolygonData([[[126.9779, 37.5664], [126.9781, 37.5666], [126.9780, 37.5665]],[[126.9790, 37.5670], [126.9792, 37.5672], [126.9791, 37.5671]]])
+    # polygondata.delPolygonData(3)
+    # print("getAllPolygonData:", polygondata.getAllPolygonData())
+    # polygondata.clearPolygon()
     # print("모든 다각형 데이터 삭제됨")
     # terraindata.addHeight(1,2,3)
     # terraindata.addLos(1,2,4)
     # print("_checkExist: ", terraindata._checkExist(1,2))
     # print("getHeight: ", terraindata.getHeight("drone1"))
     # print("getLos: ", terraindata.getLos("drone1"))
+    # gcsdata.add_device_data(6, 1, 2, 3, 4, 5)
+    # gcsdata.getAcesspointList()
+    # print("getAcesspointList:", gcsdata.getAcesspointList())
+    # gcsdata.get_GCS_data(1)
+    # print("get_GCS_data:", gcsdata.get_GCS_data(1))
+    # gcsdata.updateGCSpoint(1, 2, 3, 4, 5, 6)
+    # gcsdata.delGCSpoint(1)
     
 
     # print(waypoint.getWayPointList())
