@@ -33,11 +33,9 @@ class DeviceInfo(Resource):
         flight_alt = request.args.get('flight_alt', type=float)
         distance = request.args.get('distance', type=int)
         
-        if LAT_MIN <= gcs_lat <= LAT_MAX and LNG_MIN <= gcs_lng <= LNG_MAX:
-                    
-            result = getPolygone(gcs_lat, gcs_lng, gcs_alt, 1, flight_alt, distance)
-            
-            return {'result' : result}
+        result = getPolygone(gcs_lat, gcs_lng, gcs_alt, 1, flight_alt, distance)
+        return {'result' : result}
         
-        else:
-            return {'error' : "point out of range"}
+#        else:
+#            return {'error' : "point out of range"}
+
