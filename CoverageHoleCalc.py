@@ -35,7 +35,12 @@ def calculationLos(gcs_latitude, gcs_longitude, gcs_altitude, unit = 1, flight_a
     losDifData = PointData(distance, gcs_latitude, gcs_longitude, unit)
     slopeData.setData(gcs_latitude, gcs_longitude, float('-INF'))
 
-    gcs_height = terrain_data.getHeight(gcs_latitude, gcs_longitude) + gcs_altitude
+    gcs_terrain_height = terrain_data.getHeight(gcs_latitude, gcs_longitude)
+
+    if gcs_terrain_height is None:
+        return None, None
+
+    gcs_height = gcs_terrain_height + gcs_altitude
 
     # print(gcs_latitude, gcs_longitude, distance, unit)
     latitude_points, longitude_points = circularSearchUnit(gcs_latitude, gcs_longitude, distance, unit)
@@ -176,6 +181,9 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
 
     los, losDif = calculationLos(gcs_latitude=gcs_lat, gcs_longitude=gcs_lng, 
                                          gcs_altitude=gcs_alt, unit=unit, flight_alt=drone_alt, distance=distance)
+    
+    if losDif is None:
+        return None
 
     min_lat = gcs_lat - distance*unit*0.00001
     min_lng = gcs_lng - distance*unit*0.00001
@@ -714,7 +722,7 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
     # visualize_groups(result)
     result = process_result(result)
     print(result)
-    # visualize_groups(result)
+    visualize_groups(result)
     print("making animation")
     # visualize_groups_animation(result)
 
@@ -747,6 +755,10 @@ if __name__ == '__main__':
     # case 4----------------------------
     lat = 35.14964
     lng = 128.09348
+    # case 5----------------------------
+    lat = 35.152854269115906
+    lng = 128.09988641685908
+
     # showGraph(lat, lng, alt, 1, 1, distane=distance)
     polygone = getPolygone(lat, lng, alt, 1, 1, distance)
     # visualize_matrix(distance, polygone)

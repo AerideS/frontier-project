@@ -159,7 +159,7 @@ class FileToAlt:
             end_latitude = float(single_file[forth+1:fifth])
             end_longitude = float(single_file[fifth+1:-4])
 
-            # print(start_latitude, start_longitude, end_latitude, end_longitude, sep="  ")
+            print(start_latitude, start_longitude, end_latitude, end_longitude, sep="  ")
 
             if (start_latitude <= latitude <= end_latitude) and (start_longitude <= longitude <= end_longitude):
                 # print(single_file)
