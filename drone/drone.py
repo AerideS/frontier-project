@@ -1,6 +1,5 @@
 import argparse
 from networkChecker import networkChecker
-from multiprocessing import Process
 import asyncio
 from vehicle import Vehicle
 # from yoloModule import * 
@@ -616,13 +615,7 @@ class Drone:
             logging.error("Mode error")
             print("Mode error", new_mode)
             self.cur_mode = NormalMode(self)
-            
-        # print(377, self.cur_mode)
-        # print(526)
-        # print(self.created_task_list)
-        # print(527)
-        # print(self.created_sub_task_list)
-
+ 
         logging.debug(str(self.cur_mode))
         logging.debug(str(self.created_task_list))
         logging.debug(str(self.created_sub_task_list))
