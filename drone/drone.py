@@ -28,7 +28,8 @@ DROP_MODE = 3
 RETURN_MODE = 4
 
 PING_PERIOD = 5
-DRONE_ADDRESS = 'udp://:14540'
+# DRONE_ADDRESS = 'udp://:14540'
+DRONE_ADDRESS = 'udp://192.168.0.94:14580'
 
 MINIMAL_RECORD_THREADHOLD = 0.1
 
@@ -379,7 +380,7 @@ class Drone:
                 if mode == NormalMode:
                     break
                 await asyncio.sleep(0.5)
-            logging.debug(f"GOT MESSAGE : {single_message["type"]}")
+            logging.debug(f"GOT MESSAGE : {str(single_message)}")
             print("GOT MESSAGE :", single_message["type"])
             if single_message["type"] == 'arm':
                 await self.vehicle.arm()
@@ -718,7 +719,7 @@ if __name__ == '__main__':
     async def main():
         tracemalloc.start()
         # drone = Drone(args.name, args.server)
-        drone = Drone('drone1', 'localhost')
+        drone = Drone('drone1', '192.168.0.94')
         await drone.initSystem()
         await drone.start()
         
