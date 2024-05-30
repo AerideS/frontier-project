@@ -14,7 +14,7 @@ class RaspiCAM:
     def init_CAM(self):
         width = CAM_WIDTH
         height = CAM_HEIGHT
-        gst_str = ('nvarguscamerasrc sensor_id=0 wbmode=3 ! ' + 
+        gst_str = ('nvarguscamerasrc sensor_id=0 wbmode=0 ! ' + 
            'video/x-raw(memory:NVMM), width=1920, height=1080, framerate=30/1 ! ' + 
            'nvvidconv flip-method=0 ! ' + 
            'video/x-raw, width=960, height=540, ' + 
@@ -72,3 +72,4 @@ if __name__ == "__main__":
     cam_module = RaspiCAM()
     cam_module.getPicture()
     cam_module.savePicture()
+    cam_module.displayCAM()

@@ -104,7 +104,7 @@ class FindTree__STUB:
     
     
 if __name__ == "__main__":
-    image_path = "./tree_example3.jpg"  # �대�吏� 寃쎈줈瑜� 吏��뺥빐二쇱꽭��
+    image_path = "./tree_example.png"  # �대�吏� 寃쎈줈瑜� 吏��뺥빐二쇱꽭��
     image_processor = FindTree()
     asyncio.run(image_processor.process_image(cv2.imread(image_path)))
  
