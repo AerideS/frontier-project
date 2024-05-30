@@ -1,1 +1,1 @@
-/home/ha/NAT1/knat.o
+/home/yun/capstone/frontier-project/NAT1/knat.o

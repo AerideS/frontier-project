@@ -1,3 +1,4 @@
 test.py
 drone/test2.py
 __pycache__/
+test*.py

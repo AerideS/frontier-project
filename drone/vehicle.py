@@ -3,6 +3,7 @@ import math
 import sys
 from mavsdk import System, telemetry
 from math import cos, radians, sqrt
+import logging
 
 # 최소 안전 거리 (미터)
 MIN_SAFE_DISTANCE = 2
@@ -41,12 +42,14 @@ class Vehicle:
         try:
             async for mode in self.drone_system.telemetry.flight_mode():
                 print(mode, cur_order)
+                logging.debug("waiting for mode change, mode :{mode}, cur_order :{cur_order}")
 
                 # print(type(mode))
                 if mode == telemetry.FlightMode.HOLD:
                     '''
                     이전 동작을 완료한 경우 break
                     '''
+                    logging.debug("Hold detected, change to operation")
                     break
         except GeneratorExit as e:
             print(e, cur_order)
@@ -75,6 +78,7 @@ class Vehicle:
             await asyncio.sleep(LOCATION_BEACON_PERIOD)
             
     async def initConnect(self):
+        logging.debug("start initializing")
         
         if self.drone_system is None:
         
@@ -82,15 +86,19 @@ class Vehicle:
             await self.drone_system.connect(self.system_address)
             
             print("드론 연결 대기 중...")
+            logging.debug("waing for drone connection")
             async for state in self.drone_system.core.connection_state():
                 if state.is_connected:
-                    print(f"드론 발견!")    
+                    print(f"드론 발견!")
+                    logging.debug("found drone")  
                     break
-
+            
+            logging.debug("waing for GPS")
             print("드론의 전역 위치 추정 대기 중...")
             async for health in self.drone_system.telemetry.health():
                 if health.is_global_position_ok:
                     print("전역 위치 추정 완료")
+                    logging.debug("GPS found")
                     break
         
     async def arm(self):

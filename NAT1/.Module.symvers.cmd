@@ -1,0 +1,1 @@
+savedcmd_/home/yun/capstone/frontier-project/NAT1/Module.symvers :=  scripts/mod/modpost -m -a      -o /home/yun/capstone/frontier-project/NAT1/Module.symvers -T /home/yun/capstone/frontier-project/NAT1/modules.order -i Module.symvers -e 

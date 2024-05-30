@@ -2,6 +2,8 @@ import pika, json, time
 import threading
 import aio_pika
 import asyncio
+from mongodb_api import DroneData
+import logging
 
 SERVER_IP = 'localhost'
 '''
@@ -50,6 +52,7 @@ class MqReceiverAsync:
                 print(err, "error while checking connection to server")
                 await asyncio.sleep(RETRY_PERIOD)
             finally:
+                logging.debug("rabbitmq init complete")
                 await self.connection.close()
         
     async def checkConnection(self):
@@ -90,6 +93,7 @@ class MqReceiverAsync:
                     #     break
                     async with message.process():
                         # 메시지 처리
+                        logging.debug(f"Message got : {message.body.decode()}")
                         yield json.loads(message.body.decode())
         except Exception as excpt:
             print(excpt)
@@ -124,6 +128,8 @@ class MqSenderAsync:
 
                 queue = await channel.declare_queue(name=target, durable=True)
 
+                logging.debug(f'message : {str(message)}, to {target}')
+
                 message_body = json.dumps(message)
 
                 await channel.default_exchange.publish(
@@ -146,6 +152,7 @@ class MqReceiver:
         self._keep_going = True
         self.connected = False
         self.connection = None
+        self.message = None
 
     def initConnection(self):
         '''
@@ -194,15 +201,33 @@ class MqReceiver:
         try:
             self.connection = pika.BlockingConnection(pika.ConnectionParameters(host=self.server_ip))
             self.channel = self.connection.channel()
-            self.channel.queue_declare(queue=self.queue_name, durable=True)
+            result = self.channel.queue_declare(queue=self.queue_name, durable=True)
             
             def callback(ch, method, properties, body):
                 '''
                 메시지 처리
                 '''
                 message = json.loads(body.decode())
-                print("Received message:", message, "from ", self.queue_name)
-            
+                if message['type'] == 'status':
+                    device_data = DroneData()
+                    # time = message['time']
+                    device_id = message['device']
+                    latitude = message['position']['latitude_deg']
+                    longitude = message['position']['longitude_deg']
+                    altitude = message['position']['absolute_altitude_m']
+                    # rel_altitude = message['position']['relative_altitude_m']
+                    # vel_north = message['velocity']['north_m_s']
+                    # vel_east = message['velocity']['east_m_s']
+                    # vel_down = message['velocity']['down_m_s']
+                    # voltage = message['battery']['voltage_v']
+                    # current = message['battery']['current_battery_a']
+                    # remain = message['battery']['remaining_percent']
+
+                    # 데이터베이스 업데이트
+                    device_data.update_device_data(device_id, longitude, latitude, altitude)
+        
+                print("Received message:", message, "from ", self.queue_name, 'queue')
+
             self.channel.basic_consume(
                 queue=self.queue_name,
                 on_message_callback=callback,
@@ -609,9 +634,9 @@ def test_sender():
     # sender = MqSender('drone1', 'localhost')
     sender = MqSender('localhost')
     # time.sleep(5)
-    sender.arm("SERVER")
-    sender.takeoff(7, "SERVER")
-    sender.goto(35.15970, 128.082627, "SERVER")
+    # sender.arm("SERVER")
+    # sender.takeoff(7, "SERVER")
+    # sender.goto(35.15970, 128.082627, "SERVER")
     
     # sender.startDrop(35.15960, 128.082627)
     
@@ -663,9 +688,32 @@ def test_sender():
     # sender.goto(35.15975, 128.082622)
     # sender.goto(35.15970, 128.082622)
     # sender.goto(35.15970, 128.082627)
-    sender.startDrop(35.15970, 128.082627, "SERVER")
-    sender.land("SERVER")
-    
+    # sender.startDrop(35.15970, 128.082627, "SERVER")
+    # sender.land("SERVER")
+
+    data =  {
+            "type" : "status",
+            "time" : 'time',
+            "device" : 'drone1',
+            "position" : {
+                "latitude_deg" : 35.115,
+                "longitude_deg" : 128.555,
+                "absolute_altitude_m" : 30,
+                "relative_altitude_m" : 'rel_altitude'
+            },
+            "velocity" : {
+                "north_m_s" : 'vel_north',
+                "east_m_s" : 'vel_east',
+                "down_m_s" : 'vel_down'
+            },
+            "battery" : {
+                "voltage_v" : 'voltage',
+                "current_battery_a" : 'current',
+                "remaining_percent" : 'remain'
+            }
+        }
+    sender.send_message(data, 'SERVER')
+
     # # time.sleep(10)
     # # asyncio.run(sender.send_message(1111, "SERVER"))
     # sender.startDrop(None, None)

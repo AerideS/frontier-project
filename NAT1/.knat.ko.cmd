@@ -1,0 +1,1 @@
+savedcmd_/home/yun/capstone/frontier-project/NAT1/knat.ko := ld -r -m elf_x86_64 -z noexecstack --build-id=sha1  -T scripts/module.lds -o /home/yun/capstone/frontier-project/NAT1/knat.ko /home/yun/capstone/frontier-project/NAT1/knat.o /home/yun/capstone/frontier-project/NAT1/knat.mod.o;  make -f ./arch/x86/Makefile.postlink /home/yun/capstone/frontier-project/NAT1/knat.ko

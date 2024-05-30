@@ -1,13 +1,12 @@
 from flask import Flask, request, jsonify
 from flask_restx import Resource, Api, Namespace
 
-import os
-import sys
+import os, sys, time
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
 from mongodb_api import DroneData
 from mqapi import MqReceiver
-import gevent
+from multiprocessing import Process
 
 device_data = DroneData()
 
@@ -16,8 +15,15 @@ Devices  = Namespace(
     description="APIs for getting and updating data of Devices",
 )
 
-receiver = MqReceiver("SERVER", "localhost") #큐 이름, 서버 주소
-gevent.spawn(receiver.get_message)
+receiver = MqReceiver("SERVER", "localhost")  # 큐 이름, 서버 주소
+
+def start_receiver():
+    message = receiver.get_message()
+
+# 드론 정보 메시지 수신을 담당하는 프로세스 시작
+receiver_process = Process(target=start_receiver)
+receiver_process.start()
+
 
 @Devices.route('')
 class DeviceInfo(Resource):

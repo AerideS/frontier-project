@@ -1,5 +1,6 @@
 # from api_token import *
 import requests, struct, os, io
+from api_token import *
 
 class CrawltoImage:
     def __init__(self, start_latitude, start_longitude, end_latitude, end_longitude, directory = './elevation_file/') -> None:
@@ -44,6 +45,9 @@ class CrawltoImage:
     
 
     def getHeight(self, latitude, longitude):
+        '''
+        
+        '''
         url = f'https://maps.googleapis.com/maps/api/elevation/json?locations={latitude}%2C{longitude}&key={googlemap_access_token}'
         return self.fetch(url)
 
@@ -78,10 +82,10 @@ class CrawltoImage:
             this_end_longitude = min(round(this_start_longitude + 0.00511, 5), self.end_longitude)
             # print(this_start_latitude, this_start_longitude, this_start_latitude, this_end_longitude) 
             
-            
+
 class FileToAlt:
     # directory = './elevation_file/' -> 이 부분 이렇게 수정했는데 경로 문제 있으면 말해주세요 by 동윤
-    def __init__(self, directory = './elevation_file/') -> None:
+    def __init__(self, directory = '../elevation_file/') -> None:
         self.range = []
         self.directory = directory
         self.getFileList()
