@@ -212,7 +212,7 @@ class Vehicle:
 
             new_lat = current_lat + (north_distance / 111111)
             new_lon = current_lon + (east_distance / (111111 * abs(cos(radians(current_lat)))))
-
+            print("vehicle", 215)
             # 이동 처리
             await self.goto(new_lat, new_lon, current_alt)
 

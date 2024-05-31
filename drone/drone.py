@@ -5,14 +5,15 @@ from vehicle import Vehicle
 # from yoloModule import * 
 from vehicle_stub import *
 from datetime import datetime
-# from drone.hardware_stub import *
+from hardware_stub import RaspiCAM__STUB
 from math import tan
 import tracemalloc
 from yoloModule import * 
 from jetson.lidar import *
 from jetson.motor import *
 from jetson.relay import *
-from jetson.camera import *
+
+# from jetson.camera import *
 import logging
 
 import os
@@ -29,11 +30,11 @@ RETURN_MODE = 4
 
 PING_PERIOD = 5
 # DRONE_ADDRESS = 'udp://:14540'
-DRONE_ADDRESS = 'udp://192.168.0.94:14580'
+DRONE_ADDRESS = 'udp://192.168.43.173:14580'
 
 MINIMAL_RECORD_THREADHOLD = 0.1
 
-DROP_MARGIN = 1 # 중계기 투하시 거리에서 제외
+DROP_MARGIN = 20  # 중계기 투하시 거리에서 제외 # 음수 처리 todo
 
 DROP_TICK = 1
 
@@ -71,7 +72,8 @@ class SeekMode:
         self.sub_task_list = [self.yoloModule()]
         
         # self.yolo_module = FindTree()
-        self.cam_module = RaspiCAM() # 카메라 모듈 
+        # self.cam_module = RaspiCAM() # 카메라 모듈 
+        self.cam_module = RaspiCAM__STUB()
         self.yolo_module = FindTree() # yolov5 모듈 스텁
         self.lidar_module = LidarModule() # 라이다 모듈 스텁
                 
@@ -117,12 +119,17 @@ class SeekMode:
             if process_result is None:
                 pass # 결과가 없을 경우 이동하고 다시 비행하는 과정 포함
             else:
-                terrain_distance = await self.lidar_module.getAltidude()
+                terrain_distance = self.lidar_module.getAltitude()
                 x_pix, y_pix = process_result
+                print(124)
                 x_dist, y_dist = self.convertPixelToMeters(x_pix, y_pix, terrain_distance)
+                print(126)
                 logging.debug(f'move to {x_dist}, {y_dist}')
+                print(128)
                 await self.base_mode.vehicle.move_meters(x_dist, y_dist)
+                print(130)
                 await self.base_mode.changeMode('DROP_MODE')
+                print(132)
                 break
             
             await asyncio.sleep(1)
@@ -286,7 +293,7 @@ class Drone:
         
         # 현재 모드가 수행할 함수, task의 목록 및 생성된 task의 목록
         self.task_list = [self.processMessage(), self.checkNetwork(), \
-            self.updateStatus(), self.userInteraction(), self.task_manager()]
+            self.updateStatus(), self.task_manager()] #self.userInteraction(), 
         
         self.created_task_list = []
         
@@ -323,38 +330,38 @@ class Drone:
         await self.vehicle.initConnect()
         await self.receiver.initConnection()
             
-    async def userInteraction(self): 
-        # todo : 모드 변경시 user interaction 2번 들어가는 문제가 있었는데 해결 필요
-        print_text = "cmd>"
-        while True:
-            user_input = await asyncio.to_thread(input, print_text)
+    # async def userInteraction(self): 
+    #     # todo : 모드 변경시 user interaction 2번 들어가는 문제가 있었는데 해결 필요
+    #     print_text = "cmd>"
+    #     while True:
+    #         user_input = await asyncio.to_thread(input, print_text)
             
-            if user_input[:4] == 'MODE':
-                if user_input == 'MODE NOR':
-                    print(self.cur_mode, '> NORMAL')
-                    if type(self.cur_mode) != NormalMode:
-                        await self.changeMode('NORMAL_MODE')
-                elif user_input == 'MODE SEEK':
-                    print(self.cur_mode, '> SEEK')
-                    if type(self.cur_mode) != SeekMode:
-                        await self.changeMode('SEEK_MODE')
-                elif user_input == 'MODE DROP':
-                    print(self.cur_mode, '> DROP')
-                    if type(self.cur_mode) != DropMode:
-                        await self.changeMode('DROP_MODE')
-                elif user_input == 'MODE RTN':
-                    print(self.cur_mode, '> RTN')
-                    if type(self.cur_mode) != ReturnMode:
-                        await self.changeMode('RETURN_MODE')
-                else:
-                    print(self.cur_mode)
-            elif user_input[:3] == 'NET':
-                if user_input == 'NET CUT':
-                    self.networkChecker.test__false()
-                elif user_input == 'NET CNT':
-                    self.networkChecker.test__true()
-            else:
-                print("cmd>")
+    #         if user_input[:4] == 'MODE':
+    #             if user_input == 'MODE NOR':
+    #                 print(self.cur_mode, '> NORMAL')
+    #                 if type(self.cur_mode) != NormalMode:
+    #                     await self.changeMode('NORMAL_MODE')
+    #             elif user_input == 'MODE SEEK':
+    #                 print(self.cur_mode, '> SEEK')
+    #                 if type(self.cur_mode) != SeekMode:
+    #                     await self.changeMode('SEEK_MODE')
+    #             elif user_input == 'MODE DROP':
+    #                 print(self.cur_mode, '> DROP')
+    #                 if type(self.cur_mode) != DropMode:
+    #                     await self.changeMode('DROP_MODE')
+    #             elif user_input == 'MODE RTN':
+    #                 print(self.cur_mode, '> RTN')
+    #                 if type(self.cur_mode) != ReturnMode:
+    #                     await self.changeMode('RETURN_MODE')
+    #             else:
+    #                 print(self.cur_mode)
+    #         elif user_input[:3] == 'NET':
+    #             if user_input == 'NET CUT':
+    #                 self.networkChecker.test__false()
+    #             elif user_input == 'NET CNT':
+    #                 self.networkChecker.test__true()
+    #         else:
+    #             print("cmd>")
                 
     async def getCurrentMode(self):
         while True:
@@ -582,7 +589,7 @@ class Drone:
                     print(396)
                     if response == False:
                         print(398)
-                        await self.changeMode('RETURN_MODE')
+                        # await self.changeMode('RETURN_MODE') # 리턴 모드로 못들어가게
         except asyncio.CancelledError as err:
             print("asyncio.CancelledError", err)
             
@@ -719,7 +726,7 @@ if __name__ == '__main__':
     async def main():
         tracemalloc.start()
         # drone = Drone(args.name, args.server)
-        drone = Drone('drone1', '192.168.0.94')
+        drone = Drone('drone1', '203.255.57.136')
         await drone.initSystem()
         await drone.start()
         

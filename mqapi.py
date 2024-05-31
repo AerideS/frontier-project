@@ -53,7 +53,8 @@ class MqReceiverAsync:
                 await asyncio.sleep(RETRY_PERIOD)
             finally:
                 logging.debug("rabbitmq init complete")
-                await self.connection.close()
+                if self.connection is not None:
+                    await self.connection.close()
         
     async def checkConnection(self):
         try:
