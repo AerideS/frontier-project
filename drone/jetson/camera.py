@@ -37,16 +37,14 @@ class RaspiCAM:
         return frame
     
     def savePicture(self):
-        ret, frame = self.camera.read()
-        if not ret:
-            print("비디오 스트림을 읽을 수 없습니다.")
-            return
+        frame = self.getPicture()
         # 현재 시간을 기반으로 파일 이름 생성
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.filename = f"captured_image_{current_time}.jpg"
         image_path = os.path.join(self.save_directory, self.filename)
         cv2.imwrite(image_path, frame)
         print("이미지가 저장되었습니다:", image_path)
+        return frame
 
     #이건 걍 넣었음
     def displayCAM(self):
@@ -70,6 +68,6 @@ class RaspiCAM:
 # 사용 예시
 if __name__ == "__main__":
     cam_module = RaspiCAM()
-    cam_module.getPicture()
+    # cam_module.getPicture()
     cam_module.savePicture()
-    cam_module.displayCAM()
+    # cam_module.displayCAM()

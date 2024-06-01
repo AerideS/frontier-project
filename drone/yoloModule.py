@@ -3,6 +3,7 @@ import torch
 import pathlib
 import math
 import asyncio
+import logging
 
 import os
 import sys
@@ -20,13 +21,14 @@ class FindTree:
         model_path = './best.pt'
         self.model = torch.hub.load(str(pathlib.Path(yolov5_path)), "custom", model_path, source="local", verbose=False, force_reload=True)
         self.model.eval()
+        logging.debug(f"model loaded")
 
         self.largest_box_area = 0 
-        self.largest_box_center = (0, 0)
+        self.largest_box_center = (None, None)
         self.smallest_box_area = float('inf')
-        self.smallest_box_center = (0, 0)
+        self.smallest_box_center = (None, None)
         self.closest_box_distance = float('inf')
-        self.closest_box_center = (0, 0)
+        self.closest_box_center = (None, None)
     
     async def process_image(self, image_obj):
         '''
@@ -40,7 +42,7 @@ class FindTree:
         
         results = self.model(image_obj)
         coord = await self.detect_objects(results)
-        print("GOT RESULTS YOLO")
+        print("GOT RESULTS YOLO", coord)
         # if __name__ == '__main__':
         #     cv2.imshow("YOLOv5 Object Detection", self.image)
         #     cv2.waitKey(0)

@@ -4,6 +4,7 @@ import aio_pika
 import asyncio
 from mongodb_api import DroneData
 import logging
+# import AMQPConnectionError/
 
 # SERVER_IP = 'localhost'
 '''
@@ -116,10 +117,18 @@ class MqSenderAsync:
         
     async def send_message(self, message, target):
         # RabbitMQ 서버에 연결
-        connection = await aio_pika.connect_robust(
-            f"amqp://drone:1234@{self.server_ip}/",  # RabbitMQ 서버 주소 및 계정 정보
-            loop=asyncio.get_event_loop()
-        )
+        while True:
+            try:
+                connection = await aio_pika.connect_robust(
+                    f"amqp://drone:1234@{self.server_ip}/",  # RabbitMQ 서버 주소 및 계정 정보
+                    loop=asyncio.get_event_loop()
+                )
+                break
+            except ConnectionResetError:
+                continue
+            except pika.exceptions.AMQPConnectionError as err:
+                print(err, "error while trying to connect to server")
+                time.sleep(RETRY_PERIOD)
 
         try:
             # 연결된 채널 생성
@@ -138,10 +147,14 @@ class MqSenderAsync:
                     routing_key=queue.name 
                 )
                 print("Message sent:", 'to', target)
+            
+        except asyncio.exceptions.CancelledError:
+            logging("send channel closed")
 
         finally:
             # 연결 종료
-            await connection.close()
+            # await connection.close()
+            pass
     
     # async def close(self):
     #     await self.connection.close()
