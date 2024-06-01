@@ -5,7 +5,7 @@ import asyncio
 from mongodb_api import DroneData
 import logging
 
-SERVER_IP = 'localhost'
+# SERVER_IP = 'localhost'
 '''
 서버 주소 
 '''
@@ -41,7 +41,7 @@ class MqReceiverAsync:
         '''
         while True:
             try:
-                self.connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
+                self.connection = await aio_pika.connect_robust(f"amqp://drone:1234@{self.server_ip}/")
                 self.channel = await self.connection.channel()
                 await self.channel.queue_delete(queue_name=self.device_name)
                 self.queue = await self.channel.declare_queue(name=self.device_name, durable=True)
@@ -59,7 +59,7 @@ class MqReceiverAsync:
         try:
             while True:
                 try:
-                    self.connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
+                    self.connection = await aio_pika.connect_robust(f"amqp://drone:1234@{self.server_ip}/")
                     self.channel = await self.connection.channel()
                     self.queue = await self.channel.declare_queue(name=self.device_name, durable=True)
                     
@@ -77,7 +77,7 @@ class MqReceiverAsync:
         # RabbitMQ 연결 설정
         
         try:
-            self.connection = await aio_pika.connect_robust(f"amqp://guest:guest@{self.server_ip}/")
+            self.connection = await aio_pika.connect_robust(f"amqp://drone:1234@{self.server_ip}/")
             self.connected = True
             print('connected', self.connected, self.server_ip)
             async with self.connection:
@@ -116,7 +116,7 @@ class MqSenderAsync:
     async def send_message(self, message, target):
         # RabbitMQ 서버에 연결
         connection = await aio_pika.connect_robust(
-            f"amqp://guest:guest@{self.server_ip}/",  # RabbitMQ 서버 주소 및 계정 정보
+            f"amqp://drone:1234@{self.server_ip}/",  # RabbitMQ 서버 주소 및 계정 정보
             loop=asyncio.get_event_loop()
         )
 
