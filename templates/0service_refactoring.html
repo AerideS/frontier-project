@@ -291,12 +291,13 @@
                 }
             }
             async function ascentCommand(hash) {
+                var length = prompt("Input length : ");
                 const response = await fetch('http://203.255.57.136:5000/asc_rep', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ hash: hash})
+                    body: JSON.stringify({ hash: hash, length: length})
                 });
                 responseData = await response.json();
                 if (responseData.status === 'accepted') {
@@ -307,12 +308,13 @@
                 }
             }
             async function descentCommand(hash) {
+                var length = prompt("Input length : ");
                 const response = await fetch('http://203.255.57.136:5000/dsc_rep', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ hash: hash})
+                    body: JSON.stringify({ hash: hash, length: length})
                 });
                 responseData = await response.json();
                 if (responseData.status === 'accepted') {
