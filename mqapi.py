@@ -347,15 +347,17 @@ class MqSender:
             }
         self.send_message(message, target)
 
-    def ascent_repeater(self, target):
+    def ascent_repeater(self, distance, target):
         message = {
-            'type' : 'ascent_repeater'
+            'type' : 'ascent_repeater',
+            'distance' : distance
         }
         self.send_message(message, target)
 
-    def descent_repeater(self, target):
+    def descent_repeater(self, distance, target):
         message = {
-            'type' : 'descent_repeater'
+            'type' : 'descent_repeater',
+            'distance' : distance
         }
         self.send_message(message, target)
 
