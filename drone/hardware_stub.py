@@ -56,7 +56,7 @@ class RaspiCAM:
         return picture  
         
 class Cam_STUB_GAZEBO:
-    def __init__(self, save_directory='/home/jetson/Pictures/PiCamera_images'):
+    def __init__(self, save_directory='./'):
         self.save_directory = save_directory
         os.makedirs(save_directory, exist_ok=True)
         self.camera = self.init_CAM()

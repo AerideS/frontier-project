@@ -9,10 +9,10 @@ from datetime import datetime
 from math import tan
 import tracemalloc
 from yoloModule import * 
-from jetson.lidar import *
-from jetson.motor import *
-from jetson.relay import *
-from jetson.camera import *
+# from jetson.lidar import *
+# from jetson.motor import *
+# from jetson.relay import *
+# from jetson.camera import *
 import logging
 
 import os
@@ -379,7 +379,7 @@ class Drone:
                 if mode == NormalMode:
                     break
                 await asyncio.sleep(0.5)
-            logging.debug(f"GOT MESSAGE : {single_message["type"]}")
+            logging.debug(f"GOT MESSAGE : {str(single_message)}")
             print("GOT MESSAGE :", single_message["type"])
             if single_message["type"] == 'arm':
                 await self.vehicle.arm()

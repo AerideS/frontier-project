@@ -633,12 +633,12 @@ def test_sender():
 
     # sender = MqSender('drone1', 'localhost')
     sender = MqSender('localhost')
-    # time.sleep(5)
-    # sender.arm("SERVER")
-    # sender.takeoff(7, "SERVER")
-    # sender.goto(35.15970, 128.082627, "SERVER")
+    time.sleep(5)
+    sender.arm("drone1")
+    sender.takeoff(7, "drone1")
+    sender.goto(35.15970, 128.082627, "drone1")
     
-    # sender.startDrop(35.15960, 128.082627)
+    sender.startDrop(35.15960, 128.082627, 'drone1')
     
     # sender.goto(35.15970, 128.082540)
     # sender.goto(35.15970, 128.082550)
@@ -691,28 +691,28 @@ def test_sender():
     # sender.startDrop(35.15970, 128.082627, "SERVER")
     # sender.land("SERVER")
 
-    data =  {
-            "type" : "status",
-            "time" : 'time',
-            "device" : 'drone1',
-            "position" : {
-                "latitude_deg" : 35.115,
-                "longitude_deg" : 128.555,
-                "absolute_altitude_m" : 30,
-                "relative_altitude_m" : 'rel_altitude'
-            },
-            "velocity" : {
-                "north_m_s" : 'vel_north',
-                "east_m_s" : 'vel_east',
-                "down_m_s" : 'vel_down'
-            },
-            "battery" : {
-                "voltage_v" : 'voltage',
-                "current_battery_a" : 'current',
-                "remaining_percent" : 'remain'
-            }
-        }
-    sender.send_message(data, 'SERVER')
+    # data =  {
+    #         "type" : "status",
+    #         "time" : 'time',
+    #         "device" : 'drone1',
+    #         "position" : {
+    #             "latitude_deg" : 35.115,
+    #             "longitude_deg" : 128.555,
+    #             "absolute_altitude_m" : 30,
+    #             "relative_altitude_m" : 'rel_altitude'
+    #         },
+    #         "velocity" : {
+    #             "north_m_s" : 'vel_north',
+    #             "east_m_s" : 'vel_east',
+    #             "down_m_s" : 'vel_down'
+    #         },
+    #         "battery" : {
+    #             "voltage_v" : 'voltage',
+    #             "current_battery_a" : 'current',
+    #             "remaining_percent" : 'remain'
+    #         }
+    #     }
+    # sender.send_message(data, 'SERVER')
 
     # # time.sleep(10)
     # # asyncio.run(sender.send_message(1111, "SERVER"))
