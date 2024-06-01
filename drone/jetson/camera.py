@@ -34,10 +34,16 @@ class RaspiCAM:
             print("비디오 스트림을 읽을 수 없습니다.")
             return
         print('이미지 가져옴.')
+        self.savePicture(frame)
         return frame
     
-    def savePicture(self):
-        frame = self.getPicture()
+    def savePicture(self, frame=None):
+        if frame is None:
+            ret, frame = self.camera.read()
+            if not ret:
+                print("비디오 스트림을 읽을 수 없습니다.")
+                return
+            print('이미지 가져옴.')
         # 현재 시간을 기반으로 파일 이름 생성
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.filename = f"captured_image_{current_time}.jpg"
@@ -68,6 +74,6 @@ class RaspiCAM:
 # 사용 예시
 if __name__ == "__main__":
     cam_module = RaspiCAM()
-    # cam_module.getPicture()
-    cam_module.savePicture()
-    # cam_module.displayCAM()
+    cam_module.getPicture()
+    #cam_module.savePicture()
+    cam_module.displayCAM()
