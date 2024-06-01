@@ -291,7 +291,13 @@
                 }
             }
             async function ascentCommand(hash) {
-                var length = prompt("Input length : ");
+                while(true) {
+                    var length = parseFloat(prompt("Input length(cm) : "));
+                    if (length === "" || length === null || length > 1000 || length < 0 || isNaN(length)) {
+                        continue;
+                    }
+                    break;
+                }
                 const response = await fetch('http://203.255.57.136:5000/asc_rep', {
                     method: 'POST',
                     headers: {
@@ -308,7 +314,13 @@
                 }
             }
             async function descentCommand(hash) {
-                var length = prompt("Input length : ");
+                while(true) {
+                    var length = parseFloat(prompt("Input length(cm) : "));
+                    if (length === "" || length === null || length > 1000 || length < 0 || isNaN(length)) {
+                        continue;
+                    }
+                    break;
+                }
                 const response = await fetch('http://203.255.57.136:5000/dsc_rep', {
                     method: 'POST',
                     headers: {
