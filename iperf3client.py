@@ -1,10 +1,11 @@
 import subprocess
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 
 class IperfRunner:
-    def __init__(self, server_ip):
+    def __init__(self, server_ip, port):
         self.server_ip = server_ip
+        self.port = port
         self.start_time = datetime.now()
 
     # iperf3 명령어를 실행하여 출력 결과를 받아오는 함수
@@ -12,6 +13,7 @@ class IperfRunner:
         command = [
             'iperf3',
             '-c', self.server_ip,
+            '-p', str(self.port),  # 포트 번호 추가
             '-u',
             '-b', bandwidth,
             '-t', str(duration),  # duration을 '-t' 옵션을 통해 설정
@@ -69,16 +71,21 @@ class IperfRunner:
                         f.write(log_line)
                         print(log_line.strip())  # 터미널에 출력
 
-# 서버 IP 주소
-server_ip = '192.168.0.20'
+# 서버 IP 주소와 포트 번호 리스트
+servers = [
+    ('192.168.0.20', 5201)
+]
+
 # Bandwidth 및 Duration 설정
 bandwidth = '100M'
 duration = 1
-# 로그 파일 이름에 추가할 문자열 생성
-timestamp_str = datetime.now().strftime('%Y%m%d%H%M%S')
-log_filename = f"parsed_output_{server_ip}_{timestamp_str}.log"
 
-# IperfRunner 인스턴스 생성
-iperf_runner = IperfRunner(server_ip)
-# 실행 및 로그
-iperf_runner.run_and_log(bandwidth, duration, log_filename)
+for server_ip, port in servers:
+    # 로그 파일 이름에 추가할 문자열 생성
+    timestamp_str = datetime.now().strftime('%Y%m%d%H%M%S')
+    log_filename = f"parsed_output_{server_ip}_{port}_{timestamp_str}.log"
+
+    # IperfRunner 인스턴스 생성
+    iperf_runner = IperfRunner(server_ip, port)
+    # 실행 및 로그
+    iperf_runner.run_and_log(bandwidth, duration, log_filename)
