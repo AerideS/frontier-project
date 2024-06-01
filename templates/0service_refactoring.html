@@ -76,7 +76,7 @@
             }
             #PanelWrapper {
                 position: absolute;
-                top: 800px;
+                top: 700px;
                 right: 20px;
                 width: 25%;
                 background-color: white;
@@ -86,9 +86,11 @@
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                 display: flex;
                 flex-direction: row;
+                flex-wrap: wrap;
                 gap: 10px;
                 justify-content: center;
             }
+
             #PanelWrapper button {
                 padding: 10px 20px;
                 background-color: #007bff;
@@ -96,6 +98,7 @@
                 border: none;
                 border-radius: 5px;
                 cursor: pointer;
+                flex: 1 1 calc(50% - 10px); /* Adjust width to fit two buttons per row */
             }
             #selectedDevice {
                 position: absolute;
@@ -177,6 +180,8 @@
                 <button type="button" onClick="validateAPIKey(CM_TYPE_HEATER)">열선 작동</button>
                 <button type="button" onClick="validateAPIKey(CM_TYPE_ASCENT)">중계기 올리기</button>
                 <button type="button" onClick="validateAPIKey(CM_TYPE_DESCENT)">중계기 내리기</button>
+                <button type="button" onclick="inputSpecificMove()">MOVE 웨이포인트 추가</button>
+                <button type="button" onclick="inputSpecificDrop()">DROP 웨이포인트 추가</button>
         </div>
 
         <script>
@@ -223,6 +228,40 @@
                 else if (cmType == CM_TYPE_DESCENT) {
                     descentCommand(hash);
                 }
+            }
+
+            // 구체적 MOVE 웨이포인트 입력함수
+            async function inputSpecificMove() {
+                latitude = prompt("Input latitude of a MOVE new waypoint ")
+                longitude = prompt("Input longitude of a MOVE new waypoint: "); 
+                newPoint = [longitude, latitude];
+                payload = [WP_TYPE_MOVE, longitude, latitude];
+                // newPoint 변수를 Flask로 보내기
+                const response = await fetch('/addWP', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({payload: payload})
+                });
+                location.reload();
+            }
+
+            // 구체적 Drop 웨이포인트 입력함수
+            async function inputSpecificDrop() {
+                latitude = prompt("Input latitude of a DROP new waypoint ")
+                longitude = prompt("Input longitude of a DROP new waypoint: "); 
+                newPoint = [longitude, latitude];
+                payload = [WP_TYPE_DROP_AP, longitude, latitude];
+                // newPoint 변수를 Flask로 보내기
+                const response = await fetch('/addWP', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({payload: payload})
+                });
+                location.reload();
             }
 
             // 명령 전송 함수
@@ -341,7 +380,7 @@
                 container: 'map',
                 style: 'mapbox://styles/mapbox/dark-v11',
                 center: [128.07988, 35.15833],
-                zoom: 17,
+                zoom: 20,
                 pitch: 40
             });
 
@@ -532,6 +571,11 @@
                 }
                 const geojson = await getDroneLocation(deviceID);
                 map.getSource(deviceID).setData(geojson);
+
+                // 마커 레이어를 최상단에 배치
+                const layers = map.getStyle().layers;
+                const lastLayerId = layers[layers.length - 1].id;
+                map.moveLayer(deviceID, lastLayerId);
             }
             
             // debug
@@ -725,17 +769,26 @@
             const c = "{{ gcs_alt }}";
             const d = "{{ flight_alt }}";
             const e = "{{ distance }}";
+
+            // 원하는 위치로 화면 중심을 변경하는 함수
+            function setMapCenter(longitude, latitude) {
+                map.setCenter([longitude, latitude]);
+            }
+
+            //map.on('load', onLoad);
+            map.on('load', () => setMapCenter(b, a));
             map.on('load', () => addPolytoLayer(a, b, c, d, e));
             map.on('load', () => {
                 const marker = new mapboxgl.Marker()
                 .setLngLat([parseFloat(b), parseFloat(a)])
                 .addTo(map);
             })
-            //map.on('load', onLoad);
+            
             map.on('load', updateDropDown);
             map.on('load', renderTable);
             map.on('load', paintAllRed);
             map.on('load', drawLine);
+            
             
             
             
@@ -751,7 +804,7 @@
                 const updateAllDevicePosition = setInterval(async () => {
                     allDevice.forEach(element => {
                         printDroneLocation(element);
-                    });}, 1000);
+                    });}, 50);
             }
 
             // 지도가 클릭 될 때 리스너 함수
