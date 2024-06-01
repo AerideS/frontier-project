@@ -16,6 +16,12 @@ REST_IP_HOLE = 'http://203.255.57.136:5001/hole'
 WP_TYPE_MOVE = 0
 WP_TYPE_DROP_AP = 1
 
+gcs_lat = 0.0
+gcs_lng = 0.0
+gcs_alt = 0.0
+flight_alt = 0.0
+distance = 0.0
+
 # 선택 디바이스 전역 저장
 selectDevice = 'NONE'
 
@@ -34,7 +40,7 @@ def service_get():
   gcs_alt = request.args.get('gcs_alt')
   flight_alt = request.args.get('flight_alt')
   distance = request.args.get('distance')
-  return render_template('0service_refactoring.html') 
+  return render_template('0service_refactoring.html', gcs_lat = gcs_lat, gcs_lng = gcs_lng, gcs_alt = gcs_alt, flight_alt = flight_alt, distance = distance) 
 
 # selectDevice 선택 후 접속
 @app.route('/service', methods=['POST'])
@@ -79,19 +85,23 @@ def submit_command():
     result_data = json_data['result']
     for data in result_data:
       if data['type'] == WP_TYPE_MOVE:
-        latitude = data['latitude']
-        longitude = data['longitude']
+        # DB랑 정보확인할 필요 있음
+        latitude = data['longitude']
+        longitude = data['latitude']
+        print(f'################ ${latitude} ${longitude}')
         mqsender.goto(latitude, longitude, 'drone1')
       elif data['type'] == WP_TYPE_DROP_AP:
+        latitude = data['longitude']
+        longitude = data['latitude']
+        print(f'################ ${latitude} ${longitude}')
         mqsender.goto(latitude, longitude, 'drone1')
-        mqsender.cutString('drone')
+        mqsender.startDrop(latitude, longitude, 'drone1')
 
 
     return jsonify({"status": "accepted"})
   else:
     print('permission denied')
     return jsonify({"status": "denied"})
-
 
 @app.route('/takeoff', methods=['POST']) 
 def takeoff_command():
@@ -101,7 +111,8 @@ def takeoff_command():
   if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
     print('permission accepted')
     # debug
-    mqsender.takeoff(30, 'drone1')
+    mqsender.arm('drone1')
+    mqsender.takeoff(5, 'drone1')
     return jsonify({"status": "accepted"})
   else:
     print('permission denied')
@@ -128,6 +139,35 @@ def heater_command():
   print(hash)
   if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
     print('permission accepted')
+    mqsender.cutString('drone1')
+    return jsonify({"status": "accepted"})
+  else:
+    print('permission denied')
+    return jsonify({"status": "denied"})
+  
+@app.route('/asc_rep', methods=['POST'])
+def ascent_command():
+  data = request.json
+  hash = data['hash']
+  length = data['length']
+  print(f"{hash} \n{length}")
+  if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
+    print('permission accepted')
+    mqsender.ascent_repeater(length,'drone1')
+    return jsonify({"status": "accepted"})
+  else:
+    print('permission denied')
+    return jsonify({"status": "denied"})
+    
+@app.route('/dsc_rep', methods=['POST'])
+def descent_command():
+  data = request.json
+  hash = data['hash']
+  length = data['length']
+  print(f"{hash} \n{length}")
+  if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
+    print('permission accepted')
+    mqsender.descent_repeater(length, 'drone1')
     return jsonify({"status": "accepted"})
   else:
     print('permission denied')

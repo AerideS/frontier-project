@@ -7,6 +7,7 @@
         <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
         <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/3.2.0/sha256.min.js"></script>
         <style>
             body {
                 margin: 0;
@@ -174,6 +175,8 @@
                 <button type="button" onClick="validateAPIKey(CM_TYPE_TAKEOFF)">이륙</button>
                 <button type="button" onClick="validateAPIKey(CM_TYPE_LAND)">착륙</button>
                 <button type="button" onClick="validateAPIKey(CM_TYPE_HEATER)">열선 작동</button>
+                <button type="button" onClick="validateAPIKey(CM_TYPE_ASCENT)">중계기 올리기</button>
+                <button type="button" onClick="validateAPIKey(CM_TYPE_DESCENT)">중계기 내리기</button>
         </div>
 
         <script>
@@ -185,6 +188,8 @@
             const CM_TYPE_TAKEOFF = 1;
             const CM_TYPE_LAND = 2;
             const CM_TYPE_HEATER = 3;
+            const CM_TYPE_ASCENT = 4;
+            const CM_TYPE_DESCENT = 5;
 
             // debug
             // a1 = console.log(hashText('a'))
@@ -211,6 +216,12 @@
                 }
                 else if (cmType == CM_TYPE_HEATER) {
                     heaterCommand(hash);
+                }
+                else if (cmType == CM_TYPE_ASCENT) {
+                    ascentCommand(hash);
+                }
+                else if (cmType == CM_TYPE_DESCENT) {
+                    descentCommand(hash);
                 }
             }
 
@@ -277,6 +288,52 @@
                 }
                 else {
                     alert("Take off Permission denied");
+                }
+            }
+            async function ascentCommand(hash) {
+                while(true) {
+                    var length = parseFloat(prompt("Input length(cm) : "));
+                    if (length === "" || length === null || length > 1000 || length < 0 || isNaN(length)) {
+                        continue;
+                    }
+                    break;
+                }
+                const response = await fetch('http://203.255.57.136:5000/asc_rep', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash, length: length})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Ascent Permission accepted");
+                }
+                else {
+                    alert("Ascent off Permission denied");
+                }
+            }
+            async function descentCommand(hash) {
+                while(true) {
+                    var length = parseFloat(prompt("Input length(cm) : "));
+                    if (length === "" || length === null || length > 1000 || length < 0 || isNaN(length)) {
+                        continue;
+                    }
+                    break;
+                }
+                const response = await fetch('http://203.255.57.136:5000/dsc_rep', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash, length: length})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Descent Permission accepted");
+                }
+                else {
+                    alert("Descent Permission denied");
                 }
             }
 
@@ -364,33 +421,23 @@
                 }
                 return polyArray;
             }
+            
+            function createHash(cs_lat, gcs_lng, gcs_alt, flight_alt, distance, i) {
+                const combinedString = `${cs_lat},${gcs_lng},${gcs_alt},${flight_alt},${distance},${i}`;
+                const shaObj = new jsSHA("SHA-256", "TEXT");
+                shaObj.update(combinedString);
+                return shaObj.getHash("HEX");
+            }
 
-            // 레이어에 추가하는 함수
             async function addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance) {
                 // 랜덤한 RGB값 생성
-                // debug
-                alert('실행됨');
-                var randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+                var randomColor = '#00FF00';
                 const polygon = await returnPolyArray(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance);
+                
                 for (var i = 0; i < polygon.length; i++) {
-                    if(i != 0) {
-                        map.addLayer({
-                            'id': i.toString(),
-                            'type': 'fill',
-                            'source': {
-                                'type': 'geojson',
-                                'data': polygon[i]
-                            },
-                            'layout': {},
-                            'paint': {
-                                'fill-color':randomColor,
-                                'fill-opacity': 0.8
-                            }
-                        }, (i-1).toString());
-                    }
-                    else {
-                        map.addLayer({
-                            'id': i.toString(),
+                    hash = await createHash(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance, i)
+                    map.addLayer({
+                            'id': hash,
                             'type': 'fill',
                             'source': {
                                 'type': 'geojson',
@@ -402,7 +449,6 @@
                                 'fill-opacity': 0.8
                             }
                         });
-                    }
                 }
             }
 
@@ -525,7 +571,8 @@
                             .addTo(map);
                     }
                     else if (result[i].type == WP_TYPE_DROP_AP) {
-                        gcs_lat = result[i].longitude; gcs_lng = result[i].latitude; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
+                        const startTime = performance.now();
+                        gcs_lat = result[i].longitude; gcs_lng = result[i].latitude; gcs_alt = 1.0; flight_alt = 10.0; distance = 90;
                         //gcs_lat = 35.15833; gcs_lng = 128.07988; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
                         newPoint = [result[i].latitude, result[i].longitude];
                         coordinates.push(newPoint);
@@ -533,7 +580,10 @@
                             .setLngLat(newPoint)
                             .addTo(map);
                         
-                        addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance)
+                        await addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance)
+                        const endTime = performance.now();
+                        const executionTime = endTime - startTime;
+                        console.log(`Execution time: ${executionTime} milliseconds`);
                     }
                 }
                 return coordinates;
@@ -670,12 +720,21 @@
             // 맵 로드시 리스너에 추가될 함수
             //map.on('load', paintAllRed); 
             // debug 35.14964, 128.09348, 1, 1, 90
-            //gcs_lat = 35.15833; gcs_lng = 128.07988; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
-            //map.on('load', () => addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance));
-            map.on('load', onLoad);
+            const a = "{{ gcs_lat }}";
+            const b = "{{ gcs_lng }}";
+            const c = "{{ gcs_alt }}";
+            const d = "{{ flight_alt }}";
+            const e = "{{ distance }}";
+            map.on('load', () => addPolytoLayer(a, b, c, d, e));
+            map.on('load', () => {
+                const marker = new mapboxgl.Marker()
+                .setLngLat([parseFloat(b), parseFloat(a)])
+                .addTo(map);
+            })
+            //map.on('load', onLoad);
+            map.on('load', updateDropDown);
             map.on('load', renderTable);
             map.on('load', paintAllRed);
-            map.on('load', updateDropDown);
             map.on('load', drawLine);
             
             

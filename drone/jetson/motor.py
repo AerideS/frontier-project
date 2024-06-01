@@ -73,8 +73,9 @@ class ReelModule:
 
     # 모터는 시계, 풀리는 반시계로 돈다.
     def ascent_repeater(self, distance, duty_cycle_percent=2.5):
+        distance = distance/100
         if duty_cycle_percent >= 2.5 and duty_cycle_percent < 7.5:
-            self.rpm = 43.0 * 2.667  #중계기 무게 고려한 상승시 모터 rpm
+            self.rpm = 45.0 * 2.667  #중계기 무게 고려한 상승시 모터 rpm
             # 풀리 끝 선속도 계산
             angular_speed = self.rpm * (2*math.pi)/60
             self.linear_speed = self.diameter/2 * angular_speed *0.001 # 단위 : m/s
@@ -106,6 +107,7 @@ class ReelModule:
 
     # 모터는 반시계, 풀리는 시계로 돈다.
     def descent_repeater(self, distance, duty_cycle_percent=12.5):
+        distance = distance/100
         if duty_cycle_percent > 7.5 and duty_cycle_percent <= 12.5:
             self.rpm = 64 * 2.667  #중계기 무게 고려한 하강시 모터 rpm
             # 풀리 끝 선속도 계산
@@ -158,8 +160,8 @@ if __name__ == '__main__':
     if TEST == 1:
         reel_module=ReelModule()
         # time.sleep(3)
-        reel_module.descent_repeater(0.5)
-        reel_module.ascent_repeater(0.5)
+        reel_module.descent_repeater(5)
+        reel_module.ascent_repeater(5)
         reel_module.stop()
     else:
         pass
