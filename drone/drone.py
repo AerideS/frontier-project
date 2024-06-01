@@ -429,7 +429,7 @@ class Drone:
                 self.dropper.ascent_repeater(single_message['distance'])
                 # self.dropper.ascent_repeater(DROP_TICK)
             elif single_message["type"] == 'descent_repeater':
-                self.dropper.ascent_repeater(single_message['distance'])
+                self.dropper.descent_repeater(single_message['distance'])
                 # self.dropper.descent_repeater(DROP_TICK)
 
             else:
