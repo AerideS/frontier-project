@@ -175,6 +175,8 @@
                 <button type="button" onClick="validateAPIKey(CM_TYPE_TAKEOFF)">이륙</button>
                 <button type="button" onClick="validateAPIKey(CM_TYPE_LAND)">착륙</button>
                 <button type="button" onClick="validateAPIKey(CM_TYPE_HEATER)">열선 작동</button>
+                <button type="button" onClick="validateAPIKey(CM_TYPE_ASCENT)">중계기 올리기</button>
+                <button type="button" onClick="validateAPIKey(CM_TYPE_DESCENT)">중계기 내리기</button>
         </div>
 
         <script>
@@ -186,6 +188,8 @@
             const CM_TYPE_TAKEOFF = 1;
             const CM_TYPE_LAND = 2;
             const CM_TYPE_HEATER = 3;
+            const CM_TYPE_ASCENT = 4;
+            const CM_TYPE_DESCENT = 5;
 
             // debug
             // a1 = console.log(hashText('a'))
@@ -212,6 +216,12 @@
                 }
                 else if (cmType == CM_TYPE_HEATER) {
                     heaterCommand(hash);
+                }
+                else if (cmType == CM_TYPE_ASCENT) {
+                    ascentCommand(hash);
+                }
+                else if (cmType == CM_TYPE_DESCENT) {
+                    descentCommand(hash);
                 }
             }
 
@@ -278,6 +288,38 @@
                 }
                 else {
                     alert("Take off Permission denied");
+                }
+            }
+            async function ascentCommand(hash) {
+                const response = await fetch('http://203.255.57.136:5000/asc_rep', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Ascent Permission accepted");
+                }
+                else {
+                    alert("Ascent off Permission denied");
+                }
+            }
+            async function descentCommand(hash) {
+                const response = await fetch('http://203.255.57.136:5000/dsc_rep', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Descent Permission accepted");
+                }
+                else {
+                    alert("Descent Permission denied");
                 }
             }
 

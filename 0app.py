@@ -139,6 +139,33 @@ def heater_command():
   print(hash)
   if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
     print('permission accepted')
+    mqsender.cutString('drone1')
+    return jsonify({"status": "accepted"})
+  else:
+    print('permission denied')
+    return jsonify({"status": "denied"})
+  
+@app.route('/asc_rep', methods=['POST'])
+def ascent_command():
+  data = request.json
+  hash = data['hash']
+  print(hash)
+  if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
+    print('permission accepted')
+    mqsender.ascent_repeater('drone1')
+    return jsonify({"status": "accepted"})
+  else:
+    print('permission denied')
+    return jsonify({"status": "denied"})
+    
+@app.route('/dsc_rep', methods=['POST'])
+def descent_command():
+  data = request.json
+  hash = data['hash']
+  print(hash)
+  if hash == 'a665a45920422f9d417e4867efdc4fb8a04a1f3fff1fa07e998e86f7f7a27ae3':
+    print('permission accepted')
+    mqsender.descent_repeater('drone1')
     return jsonify({"status": "accepted"})
   else:
     print('permission denied')
