@@ -426,9 +426,11 @@ class Drone:
             elif single_message["type"] == 'cutString':
                 self.cutter.cut_string()
             elif single_message["type"] == 'ascent_repeater':
-                self.dropper.ascent_repeater(DROP_TICK)
+                self.dropper.ascent_repeater(single_message['distance'])
+                # self.dropper.ascent_repeater(DROP_TICK)
             elif single_message["type"] == 'descent_repeater':
-                self.dropper.descent_repeater(DROP_TICK)
+                self.dropper.ascent_repeater(single_message['distance'])
+                # self.dropper.descent_repeater(DROP_TICK)
 
             else:
                 logging.critical(f"undefined message, {str(single_message)}")
