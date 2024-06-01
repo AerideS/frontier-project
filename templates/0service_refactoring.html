@@ -7,6 +7,7 @@
         <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
         <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/3.2.0/sha256.min.js"></script>
         <style>
             body {
                 margin: 0;
@@ -364,33 +365,23 @@
                 }
                 return polyArray;
             }
+            
+            function createHash(cs_lat, gcs_lng, gcs_alt, flight_alt, distance, i) {
+                const combinedString = `${cs_lat},${gcs_lng},${gcs_alt},${flight_alt},${distance},${i}`;
+                const shaObj = new jsSHA("SHA-256", "TEXT");
+                shaObj.update(combinedString);
+                return shaObj.getHash("HEX");
+            }
 
-            // 레이어에 추가하는 함수
             async function addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance) {
                 // 랜덤한 RGB값 생성
-                // debug
-                alert('실행됨');
-                var randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+                var randomColor = '#00FF00';
                 const polygon = await returnPolyArray(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance);
+                
                 for (var i = 0; i < polygon.length; i++) {
-                    if(i != 0) {
-                        map.addLayer({
-                            'id': i.toString(),
-                            'type': 'fill',
-                            'source': {
-                                'type': 'geojson',
-                                'data': polygon[i]
-                            },
-                            'layout': {},
-                            'paint': {
-                                'fill-color':randomColor,
-                                'fill-opacity': 0.8
-                            }
-                        }, (i-1).toString());
-                    }
-                    else {
-                        map.addLayer({
-                            'id': i.toString(),
+                    hash = await createHash(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance, i)
+                    map.addLayer({
+                            'id': hash,
                             'type': 'fill',
                             'source': {
                                 'type': 'geojson',
@@ -402,7 +393,6 @@
                                 'fill-opacity': 0.8
                             }
                         });
-                    }
                 }
             }
 
@@ -525,7 +515,8 @@
                             .addTo(map);
                     }
                     else if (result[i].type == WP_TYPE_DROP_AP) {
-                        gcs_lat = result[i].longitude; gcs_lng = result[i].latitude; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
+                        const startTime = performance.now();
+                        gcs_lat = result[i].longitude; gcs_lng = result[i].latitude; gcs_alt = 1.0; flight_alt = 10.0; distance = 90;
                         //gcs_lat = 35.15833; gcs_lng = 128.07988; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
                         newPoint = [result[i].latitude, result[i].longitude];
                         coordinates.push(newPoint);
@@ -533,7 +524,10 @@
                             .setLngLat(newPoint)
                             .addTo(map);
                         
-                        addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance)
+                        await addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance)
+                        const endTime = performance.now();
+                        const executionTime = endTime - startTime;
+                        console.log(`Execution time: ${executionTime} milliseconds`);
                     }
                 }
                 return coordinates;
@@ -670,12 +664,21 @@
             // 맵 로드시 리스너에 추가될 함수
             //map.on('load', paintAllRed); 
             // debug 35.14964, 128.09348, 1, 1, 90
-            //gcs_lat = 35.15833; gcs_lng = 128.07988; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
-            //map.on('load', () => addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance));
-            map.on('load', onLoad);
+            const a = "{{ gcs_lat }}";
+            const b = "{{ gcs_lng }}";
+            const c = "{{ gcs_alt }}";
+            const d = "{{ flight_alt }}";
+            const e = "{{ distance }}";
+            map.on('load', () => addPolytoLayer(a, b, c, d, e));
+            map.on('load', () => {
+                const marker = new mapboxgl.Marker()
+                .setLngLat([parseFloat(b), parseFloat(a)])
+                .addTo(map);
+            })
+            //map.on('load', onLoad);
+            map.on('load', updateDropDown);
             map.on('load', renderTable);
             map.on('load', paintAllRed);
-            map.on('load', updateDropDown);
             map.on('load', drawLine);
             
             
