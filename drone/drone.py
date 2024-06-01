@@ -9,10 +9,10 @@ from datetime import datetime
 from math import tan
 import tracemalloc
 from yoloModule import * 
-# from jetson.lidar import *
-# from jetson.motor import *
-# from jetson.relay import *
-# from jetson.camera import *
+from jetson.lidar import *
+from jetson.motor import *
+from jetson.relay import *
+from jetson.camera import *
 import logging
 
 import os
@@ -28,9 +28,10 @@ DROP_MODE = 3
 RETURN_MODE = 4
 
 PING_PERIOD = 5
-# DRONE_ADDRESS = 'udp://:14540'
-#DRONE_ADDRESS = 'udp://192.168.43.173:14580'
-DRONE_ADDRESS =  'serial:///dev/ttyACM0'
+# DRONE_ADDRESS = 'udp://:14540' # local simulator 
+DRONE_ADDRESS = 'udp://192.168.0.94:14580' # remote simulator
+# DRONE_ADDRESS =  'serial:///dev/ttyACM0' # 
+
 
 MINIMAL_RECORD_THREADHOLD = 0.1
 
@@ -113,8 +114,8 @@ class SeekMode:
         cnt = 0
         while True: # 카운트 세다가 없으면 넘어가기?
             logging.debug(f'yolo Module started {cnt}')
-            # this_pic = self.cam_module.getPicture() # 사진 받아옴
-            this_pic = self.cam_module.savePicture()
+            this_pic = self.cam_module.getPicture() # 사진 받아옴
+            # this_pic = self.cam_module.savePicture()
             print('나 됐어')
 
             logging.debug(f'got picture, {type(this_pic)}')
@@ -739,7 +740,8 @@ if __name__ == '__main__':
     async def main():
         tracemalloc.start()
         # drone = Drone(args.name, args.server)
-        drone = Drone('drone1', '203.255.57.136')
+        # drone = Drone('drone1', '203.255.57.136')
+        drone = Drone('drone1', '192.168.0.94')
         await drone.initSystem()
         await drone.start()
         

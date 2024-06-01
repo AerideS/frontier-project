@@ -12,7 +12,7 @@ class RelayModule:
     def cut_string(self):
         try:
             GPIO.output(self.relay_pin, GPIO.HIGH)
-            print("5초간 릴레이 켬")
+            print("10초간 릴레이 켬")
             time.sleep(10)
             GPIO.output(self.relay_pin, GPIO.LOW)
             print("릴레이 끔")

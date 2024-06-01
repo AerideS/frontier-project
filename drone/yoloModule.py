@@ -29,6 +29,9 @@ class FindTree:
         self.smallest_box_center = (None, None)
         self.closest_box_distance = float('inf')
         self.closest_box_center = (None, None)
+        
+    def fuse_model(self):
+        pass
     
     async def process_image(self, image_obj):
         '''
@@ -37,6 +40,9 @@ class FindTree:
         '''
         # cv2.imshow('home', image_obj)
         self.image = image_obj
+        if type(self.image) == type(None):
+            logging.error(f'Fail to get Image')
+            return (None, None)
         self.half_width = int(self.image.shape[1] / 2)
         self.half_height = int(self.image.shape[0] / 2)
         
