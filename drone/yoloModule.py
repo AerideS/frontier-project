@@ -20,6 +20,7 @@ class FindTree:
         # self.image = cv2.imread(image_path)
         model_path = './best.pt'
         self.model = torch.hub.load(str(pathlib.Path(yolov5_path)), "custom", model_path, source="local", verbose=False, force_reload=True)
+        model.load_state_dict(torch.load(fused_weights_path))
         self.model.eval()
         logging.debug(f"model loaded")
 
