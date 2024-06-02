@@ -593,13 +593,13 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
                             index = this_edge
 
                         if index == 0:
-                            lines[pnt].append((max_lng, max_lat))
+                            lines[pnt] += [max_lng, max_lat]
                         elif index == 1:
-                            lines[pnt].append((min_lng, max_lat))
+                            lines[pnt] += [min_lng, max_lat]
                         elif index == 2:
-                            lines[pnt].append((min_lng, min_lat))
+                            lines[pnt] += [min_lng, min_lat]
                         elif index == 3:
-                            lines[pnt].append((max_lng, min_lat))
+                            lines[pnt] += [max_lng, min_lat]
 
                         num_rotate -= 1
                         this_edge -= 1
@@ -618,13 +618,13 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
                             # visited_vertex[(this_edge + 1)%4] = True
 
                         if index == 0:
-                            lines[pnt].append((max_lng, max_lat))
+                            lines[pnt] += [max_lng, max_lat]
                         elif index == 1:
-                            lines[pnt].append((min_lng, max_lat))
+                            lines[pnt] += [min_lng, max_lat]
                         elif index == 2:
-                            lines[pnt].append((min_lng, min_lat))
+                            lines[pnt] += [min_lng, min_lat]
                         elif index == 3:
-                            lines[pnt].append((max_lng, min_lat))
+                            lines[pnt] += [max_lng, min_lat]
 
                         num_rotate -= 1
                         this_edge += 1
