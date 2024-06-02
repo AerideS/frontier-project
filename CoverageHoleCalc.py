@@ -804,22 +804,23 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
         '''
         근접하는 선들을 연결
         '''
-        visualize_groups(result)
+        # visualize_groups(result)
 
         lines = mergeLines(result) # 선들을 하나의 목록으로 통합
         print(666, 'mergeLines', lines)
-        visualize_groups(lines)
+        # visualize_groups(lines)
         
         lines = seperate_points_list(lines) # 점들을 분할
         print(670, 'seperate_points_list', lines)
-        visualize_groups(lines)
+        # visualize_groups(lines)
 
         lines = sort_line_order(lines)
-        visualize_groups(lines)
+        # visualize_groups(lines)
 
         # lines = merge_line_list(lines)
 
-        # # apply_vertex(lines)
+        lines = add_vertex(lines)
+        # visualize_groups(lines)
         # print(676, 'sort_line_order', lines)
         # visualize_groups(lines)
 
@@ -867,13 +868,13 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
                         result += seperate_points_list(group)
 
     # print(visited)
-    print(722, result)
+    # print(722, result)
     # visualize_groups(result)
     result = process_result(result)
-    print(result)
-    visualize_groups(result)
+    # print(result)
+    # visualize_groups(result)
     # print("making animation")
-    visualize_groups_animation(result)
+    # visualize_groups_animation(result)
 
     polygone_data = PolygonData()
     polygone_data.addPolygonData(gcs_lng, gcs_lat, gcs_alt, drone_alt, result)
@@ -917,6 +918,8 @@ if __name__ == '__main__':
     lat, lng = 35.15916, 128.08060
     lat, lng = 35.15918 ,128.08057
     lat, lng = 35.15177, 128.08808
+    lat, lng = 35.16284, 128.08800
+    lat, lng = 35.16128, 128.09325
 
     # showGraph(lat, lng, alt, 1, 1, distane=distance)
     polygone = getPolygone(lat, lng, alt, 1, 1, distance)
