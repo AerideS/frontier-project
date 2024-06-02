@@ -13,8 +13,8 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 
-JUMP_GAP = 0.00003
-CLOSE_GAP = 0.00003
+JUMP_GAP = 0.00004
+CLOSE_GAP = 0.00004
 APPEND_THRESHOLD_LENGTH = 20
 
 terrain_data = FileToAlt()
@@ -371,7 +371,7 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
                 print(dist)
                 sorted_points_list.append(sorted_points)
                 sorted_points = [get_sorted(points)]
-                print('next_point', next_point)
+                print('point_gap',last_point, next_point)
             else:
                 sorted_points.append(next_point)
                 points.remove(next_point)
@@ -567,11 +567,70 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
                 rotate_angle += delta_angle
                 # print(563, lines[pnt][i], lines[pnt][i + 1], cur, nxt, delta_angle, rotate_angle)
 
-            if prev_edge is not None:
-                pass
+            if prev_edge is None:
+                prev_edge = end_edge    
 
             print(565, rotate_angle)
             print(570, start_edge, end_edge, visited_vertex)
+
+            if start_edge == prev_edge:
+                # 이전 모서리와 현재 선의 모서리가 같으면 넘어가기
+                pass
+            else:
+
+                print(prev_edge, start_edge)
+                if rotate_angle > 1.571: # 90도 반시계
+                    num_rotate = (end_edge - start_edge) # 거쳐간 모서리의 개수 계산을 위함
+                    if num_rotate < 0:
+                        num_rotate = 4 + num_rotate
+                    
+                    this_edge = start_edge
+                    while num_rotate > 0:
+                        index = None
+                        if this_edge < 0:
+                            index = 4 + this_edge
+                        else:
+                            index = this_edge
+
+                        if index == 0:
+                            lines[pnt] += [max_lng, max_lat]
+                        elif index == 1:
+                            lines[pnt] += [min_lng, max_lat]
+                        elif index == 2:
+                            lines[pnt] += [min_lng, min_lat]
+                        elif index == 3:
+                            lines[pnt] += [max_lng, min_lat]
+
+                        num_rotate -= 1
+                        this_edge -= 1
+                elif rotate_angle < -1.571: # 90도 시계 방향
+                    num_rotate = (start_edge - end_edge)
+                    if num_rotate < 0:
+                        num_rotate = 4 + num_rotate
+                    
+                    this_edge = start_edge
+                    while num_rotate > 0:
+                        if this_edge < 0:
+                            index = (4 + this_edge + 1)%4
+                            # visited_vertex[(4 + this_edge + 1)%4] = True
+                        else:
+                            index = (this_edge + 1)%4
+                            # visited_vertex[(this_edge + 1)%4] = True
+
+                        if index == 0:
+                            lines[pnt] += [max_lng, max_lat]
+                        elif index == 1:
+                            lines[pnt] += [min_lng, max_lat]
+                        elif index == 2:
+                            lines[pnt] += [min_lng, min_lat]
+                        elif index == 3:
+                            lines[pnt] += [max_lng, min_lat]
+
+                        num_rotate -= 1
+                        this_edge += 1
+
+                print(578, visited_vertex)              
+
             if start_edge == end_edge:
                 # 시작 모서리에서 시작 모서리로 다시 돌아왔는데 
                 # 각도는 한바퀴 돌고온거임... 필요 없죠?
@@ -646,8 +705,7 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
         if visited_vertex[3] is False:
             will_visit.append((max_lng, min_lat))
 
-        return will_visit    
-
+        return will_visit, lines
 
     # def apply_vertex(lines):
         
@@ -663,7 +721,7 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
     #         if ptr
 
     def add_vertex(lines : list):
-        vertex_will = get_unvisited_vertex(lines)
+        vertex_will, lines = get_unvisited_vertex(lines)
 
         last_point = lines[-1][-1] # 마지막 라인의 마지막 지점
 
@@ -676,33 +734,99 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
 
         return lines
 
+    # def merge_line_list(lines): 
+    #     '''
+    #     각 라인에 대해 회전 각도 측정
+    #     회전 각도가 일정할 경우 : 반시계면 반시계, 시계면 시계 방향으로 
+    #     같은 직선으로 간주하고 합치기
+    #         현재 직선 지점과 다음 직선 지점의 사각형에서 모서리 위치가 다른 경우 
+    #             사이 모서리에 해당하는 포인트를 추가함
+    #     '''
+    #     print(lines)
+    #     visited_vertex = [False, False, False, False]
+
+    #     pnt = 0
+    #     rotate_direction = None
+    #     prev_edge = None
+
+    #     while pnt < len(lines):
+    #         print(lines[pnt])
+    #         rotate_angle = 0
+    #         start_edge = get_edge_num(lines[pnt][0])
+    #         end_edge = get_edge_num(lines[pnt][-1])
+
+    #         for i in range(len(lines[pnt]) - 1):
+    #             cur = get_degree(lines[pnt][i])
+    #             nxt = get_degree(lines[pnt][i + 1])
+
+    #             # 각도 차이 계산
+    #             delta_angle = nxt - cur
+
+    #             # 각도 차이를 -π와 π 사이로 조정
+    #             if delta_angle > math.pi:
+    #                 delta_angle -= 2 * math.pi
+    #             elif delta_angle < -math.pi:
+    #                 delta_angle += 2 * math.pi
+
+    #             rotate_angle += delta_angle
+
+    #         if prev_edge is None:
+    #             prev_edge = end_edge
+    #             rotate_direction = 1 if rotate_angle > 0 else 0
+
+    #         else:
+
+
+
+    #         pnt += 1
+
+    #     print(visited_vertex)
+
+    #     will_visit = []
+
+    #     if visited_vertex[0] is False:
+    #         will_visit.append((max_lng, max_lat))
+
+    #     if visited_vertex[1] is False:
+    #         will_visit.append((min_lng, max_lat))
+
+    #     if visited_vertex[2] is False:
+    #         will_visit.append((min_lng, min_lat))
+
+    #     if visited_vertex[3] is False:
+    #         will_visit.append((max_lng, min_lat))
+
+    #     return will_visit    
+
         
 
     def process_result(result):
         '''
         근접하는 선들을 연결
         '''
-        print(661, 'mergeLines', result)
-        # visualize_groups(result)
+        visualize_groups(result)
 
         lines = mergeLines(result) # 선들을 하나의 목록으로 통합
         print(666, 'mergeLines', lines)
-        # visualize_groups(lines)
+        visualize_groups(lines)
         
         lines = seperate_points_list(lines) # 점들을 분할
         print(670, 'seperate_points_list', lines)
-        # visualize_groups(lines)
+        visualize_groups(lines)
 
         lines = sort_line_order(lines)
+        visualize_groups(lines)
 
-        # apply_vertex(lines)
-        print(676, 'sort_line_order', lines)
+        # lines = merge_line_list(lines)
+
+        # # apply_vertex(lines)
+        # print(676, 'sort_line_order', lines)
         # visualize_groups(lines)
 
         # add_vertex(lines)
 
-        lines = add_vertex(lines)
-        print(682, 'add_vertex', lines)
+        # lines = add_vertex(lines)
+        # print(682, 'add_vertex', lines)
         # visualize_groups(lines)
 
         return lines
@@ -792,6 +916,7 @@ if __name__ == '__main__':
     lat, lng = 35.15825, 128.08761
     lat, lng = 35.15916, 128.08060
     lat, lng = 35.15918 ,128.08057
+    lat, lng = 35.15177, 128.08808
 
     # showGraph(lat, lng, alt, 1, 1, distane=distance)
     polygone = getPolygone(lat, lng, alt, 1, 1, distance)
