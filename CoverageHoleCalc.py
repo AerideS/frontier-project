@@ -819,7 +819,7 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
 
         # lines = merge_line_list(lines)
 
-        lines = add_vertex(lines)
+        # lines = add_vertex(lines)
         # visualize_groups(lines)
         # print(676, 'sort_line_order', lines)
         # visualize_groups(lines)
