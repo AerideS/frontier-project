@@ -45,7 +45,7 @@ class Vehicle:
                 logging.debug("waiting for mode change, mode :{mode}, cur_order :{cur_order}")
 
                 # print(type(mode))
-                if mode == telemetry.FlightMode.HOLD:
+                if mode == telemetry.FlightMode.HOLD or mode == telemetry.FlightMode.MISSION:
                     '''
                     이전 동작을 완료한 경우 break
                     '''
@@ -118,6 +118,8 @@ class Vehicle:
         input
         output : 이동 결과
         '''
+        await self.drone_system.action.set_maximum_speed(1)
+
         print("GOTO : ", target_lat, target_lon, target_alt)
         
         if await self.check_armed() is False:
@@ -126,7 +128,7 @@ class Vehicle:
         
         if target_alt is None:
             async for alt in self.drone_system.telemetry.altitude():
-                target_alt = alt.altitude_monotonic_m
+                target_alt = alt.altitude_amsl_m
                 break
         # await self.initConnect()
         # 목표 위치 설정
@@ -212,7 +214,7 @@ class Vehicle:
 
             new_lat = current_lat + (north_distance / 111111)
             new_lon = current_lon + (east_distance / (111111 * abs(cos(radians(current_lat)))))
-
+            print("vehicle", 215)
             # 이동 처리
             await self.goto(new_lat, new_lon, current_alt)
 

@@ -1,0 +1,1 @@
+savedcmd_/home/yun/capstone/frontier-project/NAT1/knat.mod := printf '%s\n'   knat.o | awk '!x[$$0]++ { print("/home/yun/capstone/frontier-project/NAT1/"$$0) }' > /home/yun/capstone/frontier-project/NAT1/knat.mod

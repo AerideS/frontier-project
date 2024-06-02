@@ -3,6 +3,7 @@ import torch
 import pathlib
 import math
 import asyncio
+import logging
 
 import os
 import sys
@@ -16,17 +17,22 @@ BOX_SIZE_COMP_THRESHHOLD = 1.2
 class FindTree:
     def __init__(self):
         yolov5_path = "./yolov5"  # YOLOv5 directory
-        self.image = cv2.imread(image_path)
+        # self.image = cv2.imread(image_path)
         model_path = './best.pt'
         self.model = torch.hub.load(str(pathlib.Path(yolov5_path)), "custom", model_path, source="local", verbose=False, force_reload=True)
+        model.load_state_dict(torch.load(fused_weights_path))
         self.model.eval()
+        logging.debug(f"model loaded")
 
-        self.largest_box_area = 0
-        self.largest_box_center = (0, 0)
+        self.largest_box_area = 0 
+        self.largest_box_center = (None, None)
         self.smallest_box_area = float('inf')
-        self.smallest_box_center = (0, 0)
+        self.smallest_box_center = (None, None)
         self.closest_box_distance = float('inf')
-        self.closest_box_center = (0, 0)
+        self.closest_box_center = (None, None)
+        
+    def fuse_model(self):
+        pass
     
     async def process_image(self, image_obj):
         '''
@@ -35,11 +41,15 @@ class FindTree:
         '''
         # cv2.imshow('home', image_obj)
         self.image = image_obj
+        if type(self.image) == type(None):
+            logging.error(f'Fail to get Image')
+            return (None, None)
         self.half_width = int(self.image.shape[1] / 2)
         self.half_height = int(self.image.shape[0] / 2)
         
         results = self.model(image_obj)
         coord = await self.detect_objects(results)
+        print("GOT RESULTS YOLO", coord)
         # if __name__ == '__main__':
         #     cv2.imshow("YOLOv5 Object Detection", self.image)
         #     cv2.waitKey(0)
@@ -104,7 +114,7 @@ class FindTree__STUB:
     
     
 if __name__ == "__main__":
-    image_path = "./tree_example3.jpg"  # �대�吏� 寃쎈줈瑜� 吏��뺥빐二쇱꽭��
+    image_path = "./tree_example.png"  # �대�吏� 寃쎈줈瑜� 吏��뺥빐二쇱꽭��
     image_processor = FindTree()
     asyncio.run(image_processor.process_image(cv2.imread(image_path)))
  

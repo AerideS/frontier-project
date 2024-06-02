@@ -7,6 +7,7 @@
         <link href="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.css" rel="stylesheet">
         <script src="https://api.mapbox.com/mapbox-gl-js/v3.2.0/mapbox-gl.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/3.2.0/sha256.min.js"></script>
         <style>
             body {
                 margin: 0;
@@ -75,7 +76,7 @@
             }
             #PanelWrapper {
                 position: absolute;
-                top: 800px;
+                top: 700px;
                 right: 20px;
                 width: 25%;
                 background-color: white;
@@ -85,9 +86,11 @@
                 box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
                 display: flex;
                 flex-direction: row;
+                flex-wrap: wrap;
                 gap: 10px;
                 justify-content: center;
             }
+
             #PanelWrapper button {
                 padding: 10px 20px;
                 background-color: #007bff;
@@ -95,6 +98,7 @@
                 border: none;
                 border-radius: 5px;
                 cursor: pointer;
+                flex: 1 1 calc(50% - 10px); /* Adjust width to fit two buttons per row */
             }
             #selectedDevice {
                 position: absolute;
@@ -174,6 +178,10 @@
                 <button type="button" onClick="validateAPIKey(CM_TYPE_TAKEOFF)">이륙</button>
                 <button type="button" onClick="validateAPIKey(CM_TYPE_LAND)">착륙</button>
                 <button type="button" onClick="validateAPIKey(CM_TYPE_HEATER)">열선 작동</button>
+                <button type="button" onClick="validateAPIKey(CM_TYPE_ASCENT)">중계기 올리기</button>
+                <button type="button" onClick="validateAPIKey(CM_TYPE_DESCENT)">중계기 내리기</button>
+                <button type="button" onclick="inputSpecificMove()">MOVE 웨이포인트 추가</button>
+                <button type="button" onclick="inputSpecificDrop()">DROP 웨이포인트 추가</button>
         </div>
 
         <script>
@@ -185,6 +193,11 @@
             const CM_TYPE_TAKEOFF = 1;
             const CM_TYPE_LAND = 2;
             const CM_TYPE_HEATER = 3;
+            const CM_TYPE_ASCENT = 4;
+            const CM_TYPE_DESCENT = 5;
+
+            const URL_DEVICE = "http://203.255.57.136:5002/device";
+            const URL_WAYPOINT = "http://203.255.57.136:5002/waypoint";
 
             // debug
             // a1 = console.log(hashText('a'))
@@ -212,6 +225,46 @@
                 else if (cmType == CM_TYPE_HEATER) {
                     heaterCommand(hash);
                 }
+                else if (cmType == CM_TYPE_ASCENT) {
+                    ascentCommand(hash);
+                }
+                else if (cmType == CM_TYPE_DESCENT) {
+                    descentCommand(hash);
+                }
+            }
+
+            // 구체적 MOVE 웨이포인트 입력함수
+            async function inputSpecificMove() {
+                latitude = prompt("Input latitude of a MOVE new waypoint ")
+                longitude = prompt("Input longitude of a MOVE new waypoint: "); 
+                newPoint = [longitude, latitude];
+                payload = [WP_TYPE_MOVE, longitude, latitude];
+                // newPoint 변수를 Flask로 보내기
+                const response = await fetch('/addWP', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({payload: payload})
+                });
+                location.reload();
+            }
+
+            // 구체적 Drop 웨이포인트 입력함수
+            async function inputSpecificDrop() {
+                latitude = prompt("Input latitude of a DROP new waypoint ")
+                longitude = prompt("Input longitude of a DROP new waypoint: "); 
+                newPoint = [longitude, latitude];
+                payload = [WP_TYPE_DROP_AP, longitude, latitude];
+                // newPoint 변수를 Flask로 보내기
+                const response = await fetch('/addWP', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({payload: payload})
+                });
+                location.reload();
             }
 
             // 명령 전송 함수
@@ -279,12 +332,58 @@
                     alert("Take off Permission denied");
                 }
             }
+            async function ascentCommand(hash) {
+                while(true) {
+                    var length = parseFloat(prompt("Input length(cm) : "));
+                    if (length === "" || length === null || length > 1000 || length < 0 || isNaN(length)) {
+                        continue;
+                    }
+                    break;
+                }
+                const response = await fetch('http://203.255.57.136:5000/asc_rep', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash, length: length})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Ascent Permission accepted");
+                }
+                else {
+                    alert("Ascent off Permission denied");
+                }
+            }
+            async function descentCommand(hash) {
+                while(true) {
+                    var length = parseFloat(prompt("Input length(cm) : "));
+                    if (length === "" || length === null || length > 1000 || length < 0 || isNaN(length)) {
+                        continue;
+                    }
+                    break;
+                }
+                const response = await fetch('http://203.255.57.136:5000/dsc_rep', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ hash: hash, length: length})
+                });
+                responseData = await response.json();
+                if (responseData.status === 'accepted') {
+                    alert("Descent Permission accepted");
+                }
+                else {
+                    alert("Descent Permission denied");
+                }
+            }
 
             const map = new mapboxgl.Map({
                 container: 'map',
                 style: 'mapbox://styles/mapbox/dark-v11',
                 center: [128.07988, 35.15833],
-                zoom: 17,
+                zoom: 15,
                 pitch: 40
             });
 
@@ -333,7 +432,7 @@
 
             // 음영지역 탐색 결과를 가져오는 함수
             async function getPolyData(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance) {
-                const url = `http://203.255.57.136:5001/hole?gcs_lat=${gcs_lat}&gcs_lng=${gcs_lng}&gcs_alt=${gcs_alt}&flight_alt=${flight_alt}&distance=${distance}`;
+                const url = `http://203.255.57.136:5002/hole?gcs_lat=${gcs_lat}&gcs_lng=${gcs_lng}&gcs_alt=${gcs_alt}&flight_alt=${flight_alt}&distance=${distance}`;
                 // debug
                 console.log(url);
                 const response = await fetch(url, { method: 'GET' });
@@ -364,33 +463,23 @@
                 }
                 return polyArray;
             }
+            
+            function createHash(cs_lat, gcs_lng, gcs_alt, flight_alt, distance, i) {
+                const combinedString = `${cs_lat},${gcs_lng},${gcs_alt},${flight_alt},${distance},${i}`;
+                const shaObj = new jsSHA("SHA-256", "TEXT");
+                shaObj.update(combinedString);
+                return shaObj.getHash("HEX");
+            }
 
-            // 레이어에 추가하는 함수
             async function addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance) {
                 // 랜덤한 RGB값 생성
-                // debug
-                alert('실행됨');
-                var randomColor = '#' + Math.floor(Math.random()*16777215).toString(16);
+                var randomColor = '#00FF00';
                 const polygon = await returnPolyArray(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance);
+                
                 for (var i = 0; i < polygon.length; i++) {
-                    if(i != 0) {
-                        map.addLayer({
-                            'id': i.toString(),
-                            'type': 'fill',
-                            'source': {
-                                'type': 'geojson',
-                                'data': polygon[i]
-                            },
-                            'layout': {},
-                            'paint': {
-                                'fill-color':randomColor,
-                                'fill-opacity': 0.8
-                            }
-                        }, (i-1).toString());
-                    }
-                    else {
-                        map.addLayer({
-                            'id': i.toString(),
+                    hash = await createHash(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance, i)
+                    map.addLayer({
+                            'id': hash,
                             'type': 'fill',
                             'source': {
                                 'type': 'geojson',
@@ -402,14 +491,13 @@
                                 'fill-opacity': 0.8
                             }
                         });
-                    }
                 }
             }
 
             // 디바이스 종류를 가져오는 함수
             async function getAllDevice() {
                 const response = await fetch(
-                    'http://203.255.57.136:5001/device',
+                    'http://203.255.57.136:5002/device',
                     { method: 'GET' }
                 );
                 const jsonData = await response.json();
@@ -438,7 +526,7 @@
             var position = [];
             // 실시간 드론 위치를 가져오고 geojson 형태로 반환
             async function getDroneLocation(deviceID) {
-                url = 'http://203.255.57.136:5001/device/' + deviceID;
+                url = 'http://203.255.57.136:5002/device/' + deviceID;
                 const response = await fetch( 
                     url,
                     { method: 'GET' }
@@ -486,6 +574,11 @@
                 }
                 const geojson = await getDroneLocation(deviceID);
                 map.getSource(deviceID).setData(geojson);
+
+                // 마커 레이어를 최상단에 배치
+                const layers = map.getStyle().layers;
+                const lastLayerId = layers[layers.length - 1].id;
+                map.moveLayer(deviceID, lastLayerId);
             }
             
             // debug
@@ -497,7 +590,7 @@
                 markers = [];
                 coordinates = [];
                 const response = await fetch(
-                    'http://203.255.57.136:5001/waypoint',
+                    'http://203.255.57.136:5002/waypoint',
                     { method: 'GET' }
                 );
                 const data = await response.json();
@@ -525,7 +618,8 @@
                             .addTo(map);
                     }
                     else if (result[i].type == WP_TYPE_DROP_AP) {
-                        gcs_lat = result[i].longitude; gcs_lng = result[i].latitude; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
+                        const startTime = performance.now();
+                        gcs_lat = result[i].longitude; gcs_lng = result[i].latitude; gcs_alt = 1.0; flight_alt = 10.0; distance = 90;
                         //gcs_lat = 35.15833; gcs_lng = 128.07988; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
                         newPoint = [result[i].latitude, result[i].longitude];
                         coordinates.push(newPoint);
@@ -533,7 +627,10 @@
                             .setLngLat(newPoint)
                             .addTo(map);
                         
-                        addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance)
+                        await addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance)
+                        const endTime = performance.now();
+                        const executionTime = endTime - startTime;
+                        console.log(`Execution time: ${executionTime} milliseconds`);
                     }
                 }
                 return coordinates;
@@ -572,7 +669,7 @@
 
             // REST API를 통해 웨이포인트 위치 가져오는 함수
             async function getAllWaypoint() {
-                url = 'http://203.255.57.136:5001/waypoint';
+                url = 'http://203.255.57.136:5002/waypoint';
                 const response = await fetch( 
                     url,
                     { method: 'GET' }
@@ -667,16 +764,34 @@
                 }
             }
 
+            map.on('load', drawLine);
+
             // 맵 로드시 리스너에 추가될 함수
             //map.on('load', paintAllRed); 
             // debug 35.14964, 128.09348, 1, 1, 90
-            //gcs_lat = 35.15833; gcs_lng = 128.07988; gcs_alt = 1.0; flight_alt = 1.0; distance = 90;
-            //map.on('load', () => addPolytoLayer(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance));
-            map.on('load', onLoad);
+            const a = "{{ gcs_lat }}";
+            const b = "{{ gcs_lng }}";
+            const c = "{{ gcs_alt }}";
+            const d = "{{ flight_alt }}";
+            const e = "{{ distance }}";
+
+            // 원하는 위치로 화면 중심을 변경하는 함수
+            function setMapCenter(longitude, latitude) {
+                map.setCenter([longitude, latitude]);
+            }
+
+            map.on('load', () => setMapCenter(b, a));
+            map.on('load', () => addPolytoLayer(a, b, c, d, e));
+            map.on('load', () => {
+                const marker = new mapboxgl.Marker()
+                .setLngLat([parseFloat(b), parseFloat(a)])
+                .addTo(map);
+            })
+            map.on('load', updateDropDown);
             map.on('load', renderTable);
             map.on('load', paintAllRed);
-            map.on('load', updateDropDown);
-            map.on('load', drawLine);
+            map.on('load', onLoad);
+            
             
             
             
@@ -692,7 +807,7 @@
                 const updateAllDevicePosition = setInterval(async () => {
                     allDevice.forEach(element => {
                         printDroneLocation(element);
-                    });}, 1000);
+                    });}, 50);
             }
 
             // 지도가 클릭 될 때 리스너 함수
