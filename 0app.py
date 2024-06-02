@@ -9,9 +9,10 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})  # 모든 엔드포인트에 CORS를 활성화하고 모든 도메인에서의 접근을 허용
 
 ## 상수 정의부
-REST_IP_DEVICE = 'http://203.255.57.136:5001/device'
-REST_IP_WAYPOINT = 'http://203.255.57.136:5001/waypoint'
-REST_IP_HOLE = 'http://203.255.57.136:5001/hole'
+REST_IP_DEVICE = 'http://203.255.57.136:5002/device'
+REST_IP_WAYPOINT = 'http://203.255.57.136:5002/waypoint'
+REST_IP_HOLE = 'http://203.255.57.136:5002/hole'
+URL_WP = 'http://203.255.57.136:5002/waypoint'
 
 WP_TYPE_MOVE = 0
 WP_TYPE_DROP_AP = 1
@@ -71,7 +72,6 @@ def delete_waypoint():
   print(response)
   return render_template('service.html', selectDevice=selectDevice)
   
-URL_WP = 'http://203.255.57.136:5001/waypoint'
 @app.route('/submit', methods=['POST']) 
 def submit_command():
   data = request.json
@@ -112,7 +112,7 @@ def takeoff_command():
     print('permission accepted')
     # debug
     mqsender.arm('drone1')
-    mqsender.takeoff(5, 'drone1')
+    mqsender.takeoff(6, 'drone1')
     return jsonify({"status": "accepted"})
   else:
     print('permission denied')

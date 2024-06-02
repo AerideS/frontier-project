@@ -196,6 +196,9 @@
             const CM_TYPE_ASCENT = 4;
             const CM_TYPE_DESCENT = 5;
 
+            const URL_DEVICE = "http://203.255.57.136:5002/device";
+            const URL_WAYPOINT = "http://203.255.57.136:5002/waypoint";
+
             // debug
             // a1 = console.log(hashText('a'))
             // 키 해시화 함수
@@ -380,7 +383,7 @@
                 container: 'map',
                 style: 'mapbox://styles/mapbox/dark-v11',
                 center: [128.07988, 35.15833],
-                zoom: 20,
+                zoom: 15,
                 pitch: 40
             });
 
@@ -429,7 +432,7 @@
 
             // 음영지역 탐색 결과를 가져오는 함수
             async function getPolyData(gcs_lat, gcs_lng, gcs_alt, flight_alt, distance) {
-                const url = `http://203.255.57.136:5001/hole?gcs_lat=${gcs_lat}&gcs_lng=${gcs_lng}&gcs_alt=${gcs_alt}&flight_alt=${flight_alt}&distance=${distance}`;
+                const url = `http://203.255.57.136:5002/hole?gcs_lat=${gcs_lat}&gcs_lng=${gcs_lng}&gcs_alt=${gcs_alt}&flight_alt=${flight_alt}&distance=${distance}`;
                 // debug
                 console.log(url);
                 const response = await fetch(url, { method: 'GET' });
@@ -494,7 +497,7 @@
             // 디바이스 종류를 가져오는 함수
             async function getAllDevice() {
                 const response = await fetch(
-                    'http://203.255.57.136:5001/device',
+                    'http://203.255.57.136:5002/device',
                     { method: 'GET' }
                 );
                 const jsonData = await response.json();
@@ -523,7 +526,7 @@
             var position = [];
             // 실시간 드론 위치를 가져오고 geojson 형태로 반환
             async function getDroneLocation(deviceID) {
-                url = 'http://203.255.57.136:5001/device/' + deviceID;
+                url = 'http://203.255.57.136:5002/device/' + deviceID;
                 const response = await fetch( 
                     url,
                     { method: 'GET' }
@@ -587,7 +590,7 @@
                 markers = [];
                 coordinates = [];
                 const response = await fetch(
-                    'http://203.255.57.136:5001/waypoint',
+                    'http://203.255.57.136:5002/waypoint',
                     { method: 'GET' }
                 );
                 const data = await response.json();
@@ -666,7 +669,7 @@
 
             // REST API를 통해 웨이포인트 위치 가져오는 함수
             async function getAllWaypoint() {
-                url = 'http://203.255.57.136:5001/waypoint';
+                url = 'http://203.255.57.136:5002/waypoint';
                 const response = await fetch( 
                     url,
                     { method: 'GET' }
@@ -761,6 +764,8 @@
                 }
             }
 
+            map.on('load', drawLine);
+
             // 맵 로드시 리스너에 추가될 함수
             //map.on('load', paintAllRed); 
             // debug 35.14964, 128.09348, 1, 1, 90
@@ -775,7 +780,6 @@
                 map.setCenter([longitude, latitude]);
             }
 
-            //map.on('load', onLoad);
             map.on('load', () => setMapCenter(b, a));
             map.on('load', () => addPolytoLayer(a, b, c, d, e));
             map.on('load', () => {
@@ -783,11 +787,10 @@
                 .setLngLat([parseFloat(b), parseFloat(a)])
                 .addTo(map);
             })
-            
             map.on('load', updateDropDown);
             map.on('load', renderTable);
             map.on('load', paintAllRed);
-            map.on('load', drawLine);
+            map.on('load', onLoad);
             
             
             
