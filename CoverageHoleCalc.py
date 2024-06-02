@@ -749,7 +749,7 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
     print(result)
     visualize_groups(result)
     # print("making animation")
-    # visualize_groups_animation(result)
+    visualize_groups_animation(result)
 
     polygone_data = PolygonData()
     polygone_data.addPolygonData(gcs_lng, gcs_lat, gcs_alt, drone_alt, result)
@@ -788,6 +788,10 @@ if __name__ == '__main__':
     # lng = 128.09222     
 
     lat, lng = 35.15900, 128.08168
+    lat, lng = 35.16014, 128.08267
+    lat, lng = 35.15825, 128.08761
+    lat, lng = 35.15916, 128.08060
+    lat, lng = 35.15918 ,128.08057
 
     # showGraph(lat, lng, alt, 1, 1, distane=distance)
     polygone = getPolygone(lat, lng, alt, 1, 1, distance)
