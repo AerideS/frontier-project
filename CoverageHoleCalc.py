@@ -136,29 +136,30 @@ def showGraph(gcs_lat, gcs_lng, gcs_alt, unit, drone_alt, distane):
     fig = plt.figure()
     ax = fig.add_subplot(projection='3d')
 
-    for alt in range(1,11):
-        print('calc start', alt)
-        calculation(ax, gcs_lat, gcs_lng, gcs_alt, unit)
-        print('calc complete', alt)
-        plt.xlabel('Latitude (deg)', fontsize=8)
-        plt.ylabel('Longitude (deg)', fontsize=8)
-        # plt.zlabel('Elevation (m)', fontsize=24)
-        plt.xticks(fontsize=12)
-        current_values = plt.gca().get_xticks()
-        plt.gca().set_xticklabels(['{:.5f}'.format(x) for x in current_values])
-        plt.yticks(fontsize=12)
-        current_values = plt.gca().get_yticks()
-        plt.gca().set_yticklabels(['{:.5f}'.format(x) for x in current_values])
+    # for alt in range(1,11):
+    alt = drone_alt
+    print('calc start', alt)
+    calculation(ax, gcs_lat, gcs_lng, gcs_alt, unit)
+    print('calc complete', alt)
+    plt.xlabel('Latitude (deg)', fontsize=8)
+    plt.ylabel('Longitude (deg)', fontsize=8)
+    # plt.zlabel('Elevation (m)', fontsize=24)
+    plt.xticks(fontsize=12)
+    current_values = plt.gca().get_xticks()
+    plt.gca().set_xticklabels(['{:.5f}'.format(x) for x in current_values])
+    plt.yticks(fontsize=12)
+    current_values = plt.gca().get_yticks()
+    plt.gca().set_yticklabels(['{:.5f}'.format(x) for x in current_values])
 
-        def update(frame):
-            # 각 프레임마다 그래프를 회전시킵니다.
-            ax.view_init(elev=20, azim=frame)
-        # plt.show()
-        print('making animation')
-        ani = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), interval=50)
-        ani.save(f'../3d_hole/3d_hole_calculation_{lat}_{lng}_{alt}__{unit}_{str(datetime.now().timestamp())}.gif')
-        # plt.show()
-        plt.cla()
+    def update(frame):
+        # 각 프레임마다 그래프를 회전시킵니다.
+        ax.view_init(elev=20, azim=frame)
+    # plt.show()
+    print('making animation')
+    ani = FuncAnimation(fig, update, frames=np.arange(0, 360, 2), interval=50)
+    ani.save(f'../3d_hole/3d_hole_calculation_{lat}_{lng}_{alt}__{unit}_{str(datetime.now().timestamp())}.gif')
+    # plt.show()
+    plt.cla()
 
 def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
                 unit : int, drone_alt : float, distance : int):
@@ -239,9 +240,13 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
     
     def visualize_groups(groups):
         plt.figure(figsize=(14,14))
+        plt.grid(False)
         plt.xlim(gcs_lng - distance*unit*0.00001 - 0.0001, gcs_lng + distance*unit*0.00001 + 0.0001)
         plt.ylim(gcs_lat - distance*unit*0.00001 - 0.0001, gcs_lat + distance*unit*0.00001 + 0.0001)
+        # plt.gca().axes.xaxis.set_visible(False)
+        # plt.gca().axes.yaxis.set-vi
         plt.scatter(gcs_lng, gcs_lat, c='r')
+        plt.scatter(128.09223, 35.15471, c='g')
 
         lat_points = None
         lng_points = None
@@ -317,7 +322,7 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
             if is_valid(nx, ny):
                 if losDifData[nx][ny] is None: # None MEANS GCS POINT!
                     return False
-                elif losDifData[nx][ny] < 0:
+                elif losDifData[nx][ny] > 0:
                     return True
         return False
     
@@ -808,7 +813,7 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
 
         lines = mergeLines(result) # 선들을 하나의 목록으로 통합
         print(666, 'mergeLines', lines)
-        # visualize_groups(lines)
+        visualize_groups(lines)
         
         lines = seperate_points_list(lines) # 점들을 분할
         print(670, 'seperate_points_list', lines)
@@ -865,14 +870,15 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
                     group = dfs(i, j)
                     if group:
                         # group = addAdditonPoint(group)
-                        result += seperate_points_list(group)
+                        result += group
+                        # result += seperate_points_list(group)
 
     # print(visited)
     # print(722, result)
     # visualize_groups(result)
-    result = process_result(result)
+    # result = process_result(result)
     # print(result)
-    # visualize_groups(result)
+    visualize_groups(result)
     # print("making animation")
     # visualize_groups_animation(result)
 
@@ -920,6 +926,15 @@ if __name__ == '__main__':
     lat, lng = 35.15177, 128.08808
     lat, lng = 35.16284, 128.08800
     lat, lng = 35.16128, 128.09325
+    lat, lng = 35.15678, 128.08956
+    lat, lng = 35.15463, 128.09241 # 드론 배치 위치
+    lat, lng = 35.15426, 128.09238
+    # 128.0931707	35.15488842
+    lng, lat = 128.0931678,	35.15483304
+
+    # 128.09223, 35.15560
+
+
 
     # showGraph(lat, lng, alt, 1, 1, distane=distance)
     polygone = getPolygone(lat, lng, alt, 1, 1, distance)
