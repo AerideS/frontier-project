@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, jsonify
 from flask_restx import Resource, Api, Namespace
 
 import os
@@ -25,8 +25,6 @@ class DeviceInfo(Resource):
     전체 device에 대한 정보
     '''
     def get(self):
-        data = request.get_json()
-        
         gcs_lat = request.args.get('gcs_lat', type=float)
         gcs_lng = request.args.get('gcs_lng', type=float)
         gcs_alt = request.args.get('gcs_alt', type=float)
@@ -34,7 +32,7 @@ class DeviceInfo(Resource):
         distance = request.args.get('distance', type=int)
         
         result = getPolygone(gcs_lat, gcs_lng, gcs_alt, 1, flight_alt, distance)
-        return {'result' : result}
+        return jsonify({'result': result})
         
 #        else:
 #            return {'error' : "point out of range"}
