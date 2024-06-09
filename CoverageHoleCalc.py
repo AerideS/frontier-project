@@ -878,7 +878,7 @@ def getPolygone(gcs_lat : float, gcs_lng : float, gcs_alt : float, \
     # visualize_groups(result)
     # result = process_result(result)
     # print(result)
-    visualize_groups(result)
+    # visualize_groups(result)
     # print("making animation")
     # visualize_groups_animation(result)
 
@@ -930,7 +930,7 @@ if __name__ == '__main__':
     lat, lng = 35.15463, 128.09241 # 드론 배치 위치
     lat, lng = 35.15426, 128.09238
     # 128.0931707	35.15488842
-    lng, lat = 128.0931678,	35.15483304
+    # lng, lat = 128.0931678,	35.15483304
 
     # 128.09223, 35.15560
 
